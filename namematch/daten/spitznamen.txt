@@ -1,0 +1,53 @@
+# Spitznamen- und Kurzformliste für namematch (lokal, frei editierbar)
+#
+# Format: Kurzform = Langform1, Langform2, ...
+# Eine Kurzform gilt als gleichwertig zu jeder ihrer Langformen.
+# Die Langformen untereinander gelten NICHT als gleich (Alexander ≠ Alexandra).
+# Groß-/Kleinschreibung, Umlaute und Akzente spielen keine Rolle.
+# Treffer über eine Kurzform landen höchstens in „Prüfen“.
+
+alex = alexander, alexandra
+sascha = alexander, alexandra
+sandy = sandra, alexandra
+andi = andreas
+basti = sebastian
+ben = benjamin, benedikt
+bene = benedikt
+chris = christian, christoph, christopher, christina, christine
+conny = cornelia
+dani = daniel, daniela
+flo = florian
+franzi = franziska
+fritz = friedrich
+gabi = gabriele
+hannes = johannes
+hans = johannes
+jo = johanna, johannes
+jojo = johanna, johannes
+jule = julia, juliane
+juli = julia, juliane
+kathi = katharina
+kati = katharina
+katja = katharina
+käthe = katharina
+lena = helena, magdalena
+leni = helena, magdalena
+lisa = elisabeth
+lotte = charlotte
+matze = matthias
+max = maximilian
+micha = michael
+mia = maria
+moni = monika
+nici = nicole
+niki = nikolaus, nicole
+olli = oliver
+resi = theresa
+sepp = josef
+steffi = stefanie, stephanie
+susi = susanne
+toni = anton, antonia
+tommy = thomas
+uli = ulrich, ulrike
+vroni = veronika
+wolfi = wolfgang

@@ -1,0 +1,30 @@
+# Automatische Tests unter Linux und macOS (Windows folgt später).
+# Läuft ausschließlich mit den synthetischen Testdaten aus tests/fixtures – niemals mit echten Daten.
+# Netzwerk-Sockets sind in allen Tests gesperrt (pytest-socket, siehe pyproject.toml).
+name: Tests
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  tests:
+    name: ${{ matrix.os }} · Python ${{ matrix.python }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, macos-latest]
+        python: ["3.11", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+      - name: Abhängigkeiten installieren (feste Versionen)
+        run: python -m pip install -r requirements-dev.txt
+      - name: Tests (Netzwerk gesperrt)
+        run: python -m pytest -p no:cacheprovider

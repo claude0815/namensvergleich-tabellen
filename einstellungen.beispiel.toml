@@ -1,0 +1,47 @@
+# Einstellungen für namematch (optional)
+#
+# Kopieren Sie diese Datei z. B. nach „einstellungen.toml“, passen Sie die Werte an und
+# übergeben Sie sie mit:  python -m namematch a.xlsx b.csv -o ergebnis.xlsx --config einstellungen.toml
+# Nicht angegebene Werte behalten ihren Standard. Die hier eingetragenen Werte SIND die Standardwerte.
+
+[schwellen]
+sicher = 90              # ab diesem Score: „Sicher“ (grün)
+pruefen = 70             # ab diesem Score: „Prüfen“ (gelb); darunter kein Treffer
+mehrdeutig_abstand = 5   # liegen zwei Kandidaten weniger als so viele Punkte auseinander: „Mehrdeutig“
+
+[gewichtung]
+vorname = 0.4            # Gewicht des Vornamens beim Vergleich Vor-/Nachname
+nachname = 0.6           # Gewicht des Nachnamens (wiegt stärker)
+deckel_teilname = 80     # höchster Score, wenn nur Vor- ODER Nachname verglichen werden kann
+namensteil = 85          # Score, wenn ein Doppelname/zweiter Vorname nur auf einer Seite steht
+kurzform = 85            # Score für Kurzformen aus der Spitznamen-Liste (Alex/Alexander)
+
+[zusatzmerkmale]
+bonus_klasse = 5         # Klasse gleich → Bonus (abweichend: kein Abzug, nur Hinweis)
+bonus_geburtsdatum = 10  # Geburtsdatum gleich → Bonus
+abzug_geburtsdatum = 10  # Geburtsdatum abweichend → Abzug
+bonus_email = 10
+abzug_email = 10
+min_namensscore = 60     # unter diesem Namens-Score gibt es keinen Bonus (Merkmale erzeugen keinen Treffer)
+
+[normalisierung]
+# Titel und Zusätze, die vor dem Vergleich entfernt werden. Mit Punkt = nur mit Punkt erkannt.
+titel = ["dr.", "dr", "prof.", "prof", "herr", "frau", "hr.", "fr.", "dipl.", "ing.", "dipl.-ing.",
+         "med.", "rer.", "nat.", "phil.", "mag.", "jun.", "sen.", "jr.", "sr."]
+# Namenszusätze, die zum Nachnamen gehören
+namenszusaetze = ["von", "van", "de", "der", "den", "del", "della", "di", "da", "du", "dos", "das",
+                  "la", "le", "ten", "ter", "zu", "vom", "zum", "zur", "y", "bin", "ibn", "al", "el"]
+spitznamen = true        # Spitznamen-/Kurzformliste verwenden
+# Eigene Liste (Pfad relativ zu dieser Datei); ohne Angabe wird die mitgelieferte Liste verwendet:
+# spitznamen_datei = "meine_spitznamen.txt"
+
+[farben]                 # Hintergrundfarben als Hex-Wert (RGB)
+sicher = "C6EFCE"        # grün
+pruefen = "FFEB9C"       # gelb
+mehrdeutig = "FFEB9C"    # gelb
+nur_a = "FFC7CE"         # rot
+nur_b = "D9D9D9"         # grau
+
+[ausgabe]
+kandidaten = true        # Blatt „Kandidaten“ (Top-3 je Person aus A) anlegen
+sortierung = "original"  # "original" (Reihenfolge von A) oder "status" (Prüfen-Zeilen zusammen)

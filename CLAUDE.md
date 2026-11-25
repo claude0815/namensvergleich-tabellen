@@ -43,6 +43,27 @@ noch während der Entwicklung. Es handelt sich voraussichtlich um **Schülerdate
 ## Befehle
 
 ```bash
-pip install -r requirements.txt
-pytest --disable-socket
+python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
+.venv/bin/python -m pytest                          # Netzwerk ist per pyproject.toml immer gesperrt
+.venv/bin/python -m pytest -m "not langsam"         # ohne 5.000×5.000-Lasttest
+.venv/bin/python -m tests.fixtures.erzeuge_fixtures # synthetische Testdateien neu erzeugen
+.venv/bin/python -m namematch tests/fixtures/schueler_a.xlsx tests/fixtures/schueler_b_semikolon_cp1252.csv --dry-run
 ```
+
+## Getroffene Entscheidungen (mit dem Nutzer abgestimmt)
+
+- **Sicher** nur bei nach Normalisierung gleichem Namen. Jede echte Abweichung (Tippfehler, Kurzform,
+  Doppelname teilweise) bleibt ≤ Sicher−1 (sanfte Stauchung oberhalb Prüfen+10, Rangfolge bleibt erhalten).
+  Gleiches Geburtsdatum/E-Mail (+10) darf einen Tippfehler-Treffer auf Sicher heben, die Klasse nicht.
+- **Mehrdeutig**: Werte des besten Kandidaten werden übernommen (Gleichstand → frühere Zeile), gelb,
+  2. Kandidat im Hinweis. Exakte Duplikate ergeben Mehrdeutig statt Sicher. Geprüft in beide Richtungen.
+- **Excel-Werte typerhaltend** (Datum bleibt Datum, Zahlenformat bleibt), CSV-Werte als Text.
+- **Zuordnung** gierig Best-First (kein Hungarian/scipy), Gleichstand → ungedeckelter Rang, dann Zeilenfolge.
+- Nur ein Namensteil: Vergleich mit Vor- und Nachname der Gegenseite, Deckel 80, danach Boni, max. Sicher−1.
+- Kein pandas (benennt doppelte Spalten um, macht leere Zellen zu NaN) und kein charset-normalizer
+  (feste Kette BOM → UTF-8 → cp1252 ist für deutsche Dateien zuverlässiger) – bewusst weniger Abhängigkeiten.
+- openpyxl schreibt Zwischendateien ins System-Temp → `output._arbeitsordner` leitet sie in einen versteckten
+  Ordner im Ausgabeordner um und löscht ihn danach.
+- CLI: `--ja` überspringt die Rückfrage, `--ueberschreiben` ersetzt eine vorhandene Ergebnisdatei,
+  unerwartete Fehler zeigen nur den Typ (`--debug` für Details).
+- GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

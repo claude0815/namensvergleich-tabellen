@@ -1,0 +1,39 @@
+Schüler-ID;Nachname;Vorname;Klasse;Geburtsdatum;Telefon;E-Mail;;PLZ
+B-001;Mustermann;Max;7b;14.03.2012;0123 456;max.m@example.org;;01067
+B-002;Schneider;Lisa;7 b;01.07.2012;;;;04109
+B-003;Mueller;Juergen;8A;;;;;80331
+B-004;Meyer;Jens;8a;;0123 789;;;01069
+B-005;Weber;Anna;7a;;;;;01067
+B-006;Schulz;Anna;06c;;0123 111;;;01067
+B-007;Kowalski;Tim;8b;;;;;09111
+B-008;Müller;Sabine;9a;;;;;01307
+B-009;Becker;Tom;5b;;0123 222;;;01309
+B-010;Schmitt;Petra;10c;;;;;01326
+
+B-011;Yilmaz;Oezlem;7a;30.11.2012;;;;01097
+B-012;Garcia;Jose;8b;;;;=SUMME(A1:A3);01099
+B-013;van Beethoven;Ludwig;10a;;;;;53111
+B-014;Gross;Hans-Peter;6a;;;;;01157
+B-015;Hartmann;Leonie;5a;;;;;01159
+B-016;Wagner;Paul;6b;;;;;01169
+B-017;Mustermann;Erika;7b;;;;;01067
+B-018;Neumann;Katharina;6a;;;;;01189
+B-019;Hoffmann;Lucas;8b;09.09.2011;;;;01217
+B-020;Groß;Clara;10b;;;;;01000
+B-021;Schulz;Nele;7b;;;;;01001
+B-022;Richter;Luis;7a;;;;;01002
+B-024;Graf;Luis;7a;;;;;01004
+B-025;Lehmann;Luisa;5a;;;;;01005
+B-026;Heinrich;Ole;7b;;;;;01006
+B-028;Scholz;Ella;7a;;;;;01008
+B-029;Lange;Emilia;6a;;;;;01009
+B-030;Fischer;Ella;5a;;;;;01010
+B-032;Hofmann;Greta;7a;;;;;01012
+B-033;Martin;Greta;9a;;;;;01013
+B-034;Hofmann;Clara;6b;;;;;01014
+B-036;Berger;Paul;5b;;;;;01016
+B-037;Winkler;Emil;6b;;;;;01017
+B-038;Franke;Finn;6b;;;;;01018
+B-040;Berger;Leon;9a;;;;;01020
+B-041;Günther;Maximilian;9b;;;;;01021
+B-042;Winter;Luis;5b;;;;;01022

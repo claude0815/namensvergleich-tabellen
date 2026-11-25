@@ -1,0 +1,9 @@
+# Laufzeit-Abhängigkeiten von namematch – feste Versionen, einmalig installieren.
+# Alle Pakete arbeiten vollständig lokal (keine Netzwerkzugriffe).
+# Getestet mit Python 3.11–3.14; für alle Versionen gibt es fertige Wheels
+# für macOS (Intel/Apple Silicon), Linux und Windows.
+numpy==2.3.5
+rapidfuzz==3.14.6
+openpyxl==3.1.5
+et_xmlfile==2.0.0
+xlrd==2.0.2
