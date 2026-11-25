@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "deny": [
+      "Read(./echte_daten/**)",
+      "Edit(./echte_daten/**)",
+      "Write(./echte_daten/**)",
+      "Bash(*echte_daten*)",
+      "WebFetch",
+      "WebSearch"
+    ]
+  }
+}
