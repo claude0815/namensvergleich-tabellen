@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import re
 from collections.abc import Sequence
+from typing import Any
 from dataclasses import dataclass
 
 from .normalize import falten
@@ -16,7 +17,8 @@ _NICHT_ALNUM = re.compile(r"[^0-9a-z]+")
 
 # Überschriften (vereinheitlicht: klein, ohne Umlaute/Sonderzeichen)
 _VORNAME = {"vorname", "vornamen", "rufname", "firstname", "givenname", "forename", "vorn"}
-_NACHNAME = {"nachname", "familienname", "zuname", "lastname", "surname", "familyname", "nachn"}
+# „longName“ = Nachname in WebUntis-Exporten (dort ist „name“ der Kurzname!)
+_NACHNAME = {"nachname", "familienname", "zuname", "lastname", "surname", "familyname", "nachn", "longname"}
 _KOMBINIERT = {"namevorname", "nachnamevorname", "vornamenachname", "vornamename"}  # beides in einer Spalte
 _VOLL = {"name", "namen", "vollername", "namevollstaendig", "fullname", "teilnehmer", "teilnehmerin",
          "teilnehmende", "person", "schueler", "schuelerin", "schuelername", "kind", "mitglied"} | _KOMBINIERT
@@ -148,3 +150,72 @@ def vorschlagen(spalten: Sequence[str]) -> Spaltenvorschlag:
         belegt.add(geburtsdatum)
     email = _finden(spalten, _EMAIL, belegt, enthalten=("email",))
     return Spaltenvorschlag(namen, Zusatzspalten(klasse=klasse, geburtsdatum=geburtsdatum, email=email))
+
+
+# --- Plausibilitätsprüfung (nur Anteile und Spaltennamen, nie Zellinhalte) ---------------
+
+_ZIFFER = re.compile(r"\d")
+_BINNENMAJUSKEL = re.compile(r"^[A-ZÄÖÜ][a-zäöüß]+[A-ZÄÖÜ][a-zäöüß]")  # „MustMax“
+_BENUTZERNAME = re.compile(r"^\S*[._@]\S*$")                            # „max.mustermann“, „m_mustermann“
+_ANTEIL_WARNUNG = 0.3
+
+
+def _prozent(anteil: float) -> str:
+    return f"{round(anteil * 100)} %"
+
+
+def namensspalten_pruefen(tabelle: Any, namen: Namensspalten, kennung: str) -> list[str]:
+    """Prüft, ob die gewählten Namensspalten plausibel Namen enthalten.
+
+    Liefert verständliche Warnungen, die nur Spaltennamen und Prozentwerte enthalten.
+    """
+    from .io import zelltext  # spät importiert, damit columns ohne io nutzbar bleibt
+
+    zeilen = tabelle.zeilen
+    if not zeilen:
+        return []
+    warnungen: list[str] = []
+    datei = f"Datei {kennung}"
+    indizes = {s: tabelle.spalten.index(s) for s in namen.spalten() if s in tabelle.spalten}
+
+    leer = sum(1 for z in zeilen if all(not zelltext(z[i]).strip() for i in indizes.values()))
+    if leer / len(zeilen) >= 0.2:
+        warnungen.append(f"{datei}: bei {_prozent(leer / len(zeilen))} der Zeilen sind die Namensspalten leer.")
+
+    for spalte, index in indizes.items():
+        werte = [zelltext(z[index]).strip() for z in zeilen]
+        werte = [w for w in werte if w]
+        if not werte:
+            warnungen.append(f"{datei}: die Namensspalte „{spalte}“ ist komplett leer.")
+            continue
+        ziffern = sum(1 for w in werte if _ZIFFER.search(w)) / len(werte)
+        if ziffern >= 0.2:
+            warnungen.append(f"{datei}: in Spalte „{spalte}“ enthalten {_prozent(ziffern)} der Werte Ziffern – "
+                             "eher eine Kennung oder ein Kurzname als ein Name?")
+        kurz = sum(1 for w in werte if " " not in w and (_BINNENMAJUSKEL.match(w) or _BENUTZERNAME.match(w)))
+        if kurz / len(werte) >= _ANTEIL_WARNUNG:
+            warnungen.append(f"{datei}: Spalte „{spalte}“ sieht bei {_prozent(kurz / len(werte))} der Werte wie ein "
+                             "Kurz- oder Benutzername aus (zusammengeschrieben, Großbuchstabe in der Mitte, Punkt "
+                             "oder Unterstrich). Ist das wirklich die richtige Namensspalte?")
+        if spalte == namen.voll:
+            einzeln = sum(1 for w in werte if len(w.replace(",", " ").split()) == 1) / len(werte)
+            if einzeln >= 0.7:
+                warnungen.append(f"{datei}: Spalte „{spalte}“ enthält bei {_prozent(einzeln)} der Werte nur ein Wort. "
+                                 "Dann wird nur ein Namensteil verglichen (höchstens „Prüfen“).")
+
+    # Steht der Vorname auch in der Nachnamensspalte? Typisch für Kurz-/Benutzernamen („MustMax“).
+    if namen.vorname in indizes and namen.nachname in indizes:
+        iv, inn = indizes[namen.vorname], indizes[namen.nachname]
+        paare = [(_NICHT_ALNUM.sub("", falten(zelltext(z[iv]))), _NICHT_ALNUM.sub("", falten(zelltext(z[inn]))))
+                 for z in zeilen]
+        paare = [(v, n) for v, n in paare if v and n]
+        if paare:
+            enthalten = sum(1 for v, n in paare if v != n and (v[:3] in n if len(v) >= 3 else False)) / len(paare)
+            if enthalten >= _ANTEIL_WARNUNG:
+                warnungen.append(
+                    f"{datei}: Spalte „{namen.nachname}“ enthält bei {_prozent(enthalten)} der Zeilen auch den Anfang "
+                    f"des Vornamens aus „{namen.vorname}“ – vermutlich ein Kurz- oder Benutzername statt des "
+                    "Nachnamens. Bitte die Nachnamensspalte prüfen (z. B. mit --nachname-"
+                    f"{kennung.lower()} SPALTE)."
+                )
+    return warnungen

@@ -26,6 +26,7 @@ from .pipeline import (
     abgleichen,
     ergebnis_schreiben,
     spalten_vorschlagen,
+    spalten_warnungen,
     spaltenwahl_pruefen,
 )
 
@@ -219,6 +220,9 @@ def _ausfuehren(args: argparse.Namespace, eingabe: Callable[[str], str], aus: Te
                        _zusatzspalten(args, "b", vorschlag.zusatz_b))
     _spaltenwahl_anzeigen(wahl, tab_a, tab_b, aus)
     spaltenwahl_pruefen(wahl, tab_a, tab_b)
+    vorab = spalten_warnungen(tab_a, tab_b, wahl)
+    for warnung in vorab:
+        print(f"WARNUNG: {warnung}", file=aus)
 
     if not (fest_a and fest_b) and not args.ja and not args.dry_run:
         if not ist_terminal():
@@ -237,6 +241,12 @@ def _ausfuehren(args: argparse.Namespace, eingabe: Callable[[str], str], aus: Te
         print(f"  {status.value:<11} {zaehlung[status]:>6}", file=aus)
     print(f"  Doppelte Namen: in A {len(ergebnis.duplikate_a)}, in B {len(ergebnis.duplikate_b)} "
           "(Gruppen gleicher Namen, siehe Blatt „Protokoll“)", file=aus)
+    print("Bester Kandidat je Person aus A (Score):", file=aus)
+    for bereich, anzahl in ergebnis.verteilung().items():
+        print(f"  {bereich:<13} {anzahl:>6}", file=aus)
+    for warnung in ergebnis.warnungen:
+        if warnung not in vorab:
+            print(f"WARNUNG: {warnung}", file=aus)
     if args.dry_run:
         print(f"Probelauf ({time.perf_counter() - start:.1f} s) – es wurde nichts geschrieben.", file=aus)
         return EXIT_OK

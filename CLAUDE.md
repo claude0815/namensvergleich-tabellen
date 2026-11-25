@@ -67,4 +67,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
   Ordner im Ausgabeordner um und löscht ihn danach.
 - CLI: `--ja` überspringt die Rückfrage, `--ueberschreiben` ersetzt eine vorhandene Ergebnisdatei,
   unerwartete Fehler zeigen nur den Typ (`--debug` für Details).
+- Praxistest-Erkenntnis: WebUntis-Export hat `name` = Kurzname, `longName` = Nachname, `foreName` = Vorname.
+  `longName` wird als Nachname erkannt. Zusätzlich Plausibilitätsprüfung der Namensspalten
+  (`columns.namensspalten_pruefen`) und Ergebniswarnungen (`pipeline._ergebnis_warnungen`) – nur Anteile
+  und Spaltennamen, nie Zellinhalte. Bei schlechten Ergebnissen erst die Spaltenwahl prüfen, nicht die Schwellen.
 - GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

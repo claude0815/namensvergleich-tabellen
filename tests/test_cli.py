@@ -148,3 +148,21 @@ def test_unerwarteter_fehler_ohne_details(monkeypatch: pytest.MonkeyPatch) -> No
     assert code == EXIT_FEHLER
     assert "RuntimeError" in fehler
     assert "Geheimer Zellinhalt" not in fehler + aus
+
+
+def test_warnung_bei_kurzname_vor_der_rueckfrage() -> None:
+    fragen: list[str] = []
+    code, aus, _ = lauf(str(FIX / "webuntis_a.csv"), str(FIX / "schuelerliste_b.xlsx"), "-o", "egal.xlsx",
+                        "--vorname-a", "foreName", "--nachname-a", "name", terminal=True,
+                        eingabe=lambda frage: fragen.append(frage) or "n")
+    assert code == EXIT_ABBRUCH
+    assert "WARNUNG" in aus
+    assert aus.index("WARNUNG") < len(aus)  # Warnung erscheint vor dem Abbruch
+    assert fragen  # Rückfrage wurde gestellt, weil B automatisch erkannt wurde
+
+
+def test_verteilung_im_probelauf() -> None:
+    code, aus, _ = lauf(str(FIX / "webuntis_a.csv"), str(FIX / "schuelerliste_b.xlsx"), "--dry-run")
+    assert code == EXIT_OK
+    assert "Bester Kandidat je Person aus A" in aus
+    assert "WARNUNG" not in aus

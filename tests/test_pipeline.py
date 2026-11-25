@@ -98,3 +98,43 @@ def test_fortschritt() -> None:
                fortschritt=lambda text, anteil: meldungen.append(anteil))
     assert meldungen[0] == 0.0 and meldungen[-1] == 1.0
     assert meldungen == sorted(meldungen)
+
+
+# --- WebUntis-ähnlicher Export gegen „Nachname, Vorname“ (Regression aus Praxistest) ------------
+
+def test_webuntis_automatisch_richtig() -> None:
+    """„foreName“/„longName“ werden erkannt; „name“ (Kurzname) wird NICHT als Nachname genommen."""
+    _a, _b, gemeinsam = fx.webuntis_daten()
+    ergebnis = ausfuehren(FIX / "webuntis_a.csv", FIX / "schuelerliste_b.xlsx", ausgabe=None)
+    assert ergebnis.wahl.namen_a == Namensspalten(vorname="foreName", nachname="longName")
+    assert ergebnis.wahl.namen_b == Namensspalten(voll="SchülerIn")
+    assert ergebnis.zaehlung()[Status.SICHER] == gemeinsam
+    assert ergebnis.zaehlung()[Status.NUR_B] == 1  # Tom Becker
+    assert ergebnis.warnungen == []
+
+
+def test_falsche_nachnamensspalte_wird_gemeldet() -> None:
+    """Mit dem Kurznamen als Nachname: schwache Scores um 40–60 und deutliche Warnungen."""
+    a, b = einlesen(FIX / "webuntis_a.csv"), einlesen(FIX / "schuelerliste_b.xlsx")
+    wahl = Spaltenwahl(Namensspalten(vorname="foreName", nachname="name"), Namensspalten(voll="SchülerIn"))
+    ergebnis = abgleichen(a, b, wahl)
+    assert ergebnis.zaehlung()[Status.SICHER] == 0
+    text = " ".join(ergebnis.warnungen)
+    assert "Kurz- oder Benutzername" in text
+    assert "falsche Namensspalte" in text  # Ergebniswarnung zusätzlich zur Spaltenwarnung
+    protokoll = [z.wert for z in ergebnis.protokoll()]
+    assert any(isinstance(w, str) and "falsche Namensspalte" in w for w in protokoll)
+
+
+def test_warnung_bei_schwachen_kandidaten_unter_der_schwelle() -> None:
+    """Praxisfall: richtige Personen nur um 40–69 (Kurzname „MuMa“ statt Nachname) → Warnung, nicht Schwelle senken."""
+    from namematch.io import Tabelle
+
+    a_zeilen, b_zeilen, _ = fx.webuntis_daten()
+    a = Tabelle(Path("a.csv"), "csv", ["name", "foreName"],
+                [[z[1].replace(" ", "")[:2] + z[2][:2], z[2]] for z in a_zeilen], list(range(2, 2 + len(a_zeilen))))
+    b = Tabelle(Path("b.csv"), "csv", ["SchülerIn"], [[z[0]] for z in b_zeilen], list(range(2, 2 + len(b_zeilen))))
+    ergebnis = abgleichen(a, b, Spaltenwahl(Namensspalten(vorname="foreName", nachname="name"),
+                                            Namensspalten(voll="SchülerIn")))
+    assert ergebnis.zaehlung()[Status.NUR_A] > len(a_zeilen) / 2
+    assert any("kein Treffer gefunden" in w and "nicht die Schwellen senken" in w for w in ergebnis.warnungen)

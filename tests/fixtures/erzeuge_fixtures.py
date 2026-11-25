@@ -250,7 +250,48 @@ def alle_schreiben(ordner: Path = ORDNER) -> list[Path]:
         [["Anna", "Chor"], ["Max Mustermann", "Theater"], ["Schneider, Lisa", "Chor"], ["Herr Dr. Jürgen Müller", "AG"]],
         ",").encode("utf-8"))
     pfade.append(ordner / "gemischt_teilnehmer.csv")
+    pfade += webuntis_schreiben(ordner)
     return pfade
+
+
+# --------------------------------------------------------------------------------
+# WebUntis-ähnlicher Export: „name“ = Kurzname (NICHT der Nachname!), „longName“ = Nachname,
+# „foreName“ = Vorname. Gegenliste mit „SchülerIn“ im Format „Nachname, Vorname“.
+# --------------------------------------------------------------------------------
+WEBUNTIS_SONDERFAELLE = [
+    ("Max", "Mustermann", "7b"), ("Anna-Lena", "Schulz", "6c"), ("Jürgen", "Müller", "8a"),
+    ("Sabine", "Müller-Lang", "9a"), ("Özlem", "Yılmaz", "7a"), ("Ludwig", "van Beethoven", "10a"),
+]
+
+
+def _kurzname(vorname: str, nachname: str) -> str:
+    """Erfundener Kurzname im Stil „MustMax“ (vier Buchstaben Nachname + drei Buchstaben Vorname)."""
+    nach = nachname.replace(" ", "").replace("-", "")
+    return nach[:4].capitalize() + vorname.replace("-", "")[:3].capitalize()
+
+
+def webuntis_daten() -> tuple[list[list], list[list], int]:
+    """Zeilen für A (WebUntis-ähnlich) und B („Nachname, Vorname“) sowie die Anzahl gemeinsamer Personen."""
+    personen = WEBUNTIS_SONDERFAELLE + _zusatzpersonen(seed=815, anzahl=24)
+    a_zeilen, b_zeilen = [], []
+    gemeinsam = 0
+    for k, (vor, nach, klasse) in enumerate(personen):
+        geburt = f"{2010 + k % 4}-{1 + k % 12:02d}-{1 + k % 27:02d}"
+        a_zeilen.append([_kurzname(vor, nach), nach, vor, "m" if k % 2 else "w", geburt, klasse])
+        if k % 5 != 4:
+            b_zeilen.append([f"{nach}, {vor}", klasse])
+            gemeinsam += 1
+    b_zeilen.append(["Becker, Tom", "5b"])
+    return a_zeilen, b_zeilen, gemeinsam
+
+
+def webuntis_schreiben(ordner: Path = ORDNER) -> list[Path]:
+    """Schreibt webuntis_a.csv und schuelerliste_b.xlsx."""
+    a_zeilen, b_zeilen, _ = webuntis_daten()
+    kopf_a = ["name", "longName", "foreName", "gender", "birthDate", "klasse.name"]
+    (ordner / "webuntis_a.csv").write_bytes(_csv_text(kopf_a, a_zeilen, ";", "\r\n").encode("utf-8-sig"))
+    _xlsx_schreiben(ordner / "schuelerliste_b.xlsx", [("Schüler", ["SchülerIn", "Klasse"], b_zeilen)])
+    return [ordner / "webuntis_a.csv", ordner / "schuelerliste_b.xlsx"]
 
 
 def grosse_listen(ordner: Path, anzahl: int = 5000, seed: int = 2025) -> tuple[Path, Path]:

@@ -69,3 +69,10 @@ def test_namensspalten_pruefen() -> None:
     with pytest.raises(ValueError):
         Namensspalten(voll="Name", vorname="Vorname")
     assert Namensspalten(vorname="V", nachname="N").spalten() == ["V", "N"]
+
+
+def test_webuntis_export() -> None:
+    """WebUntis: „name“ ist der Kurzname, der Nachname steht in „longName“."""
+    v = vorschlagen(["name", "longName", "foreName", "gender", "birthDate", "klasse.name"])
+    assert v.namen == Namensspalten(vorname="foreName", nachname="longName")
+    assert (v.zusatz.klasse, v.zusatz.geburtsdatum) == ("klasse.name", "birthDate")

@@ -42,6 +42,13 @@ python3 -m venv .venv
 - Die Namens- und Zusatzspalten (Klasse, Geburtsdatum, E-Mail) werden anhand der Überschriften
   erkannt und angezeigt; vor dem Lauf kommt eine Rückfrage. `--ja` übernimmt den Vorschlag ohne Rückfrage.
 - `--dry-run` zeigt nur erkannte Spalten und Statistik und schreibt nichts.
+- Die gewählten Namensspalten werden vor dem Lauf auf Plausibilität geprüft. Es gibt eine **WARNUNG**,
+  wenn eine Spalte eher wie Kurzname, Benutzername oder Kennung aussieht oder wenn das Ergebnis auf eine
+  falsche Spaltenwahl hindeutet. Die Meldungen enthalten nur Spaltennamen und Prozentwerte.
+- **WebUntis-Exporte:** Der Nachname steht in `longName`, der Vorname in `foreName`. Die Spalte `name` ist
+  der *Kurzname* und darf nicht als Nachname verwendet werden (wird automatisch richtig erkannt).
+- Nach dem Lauf zeigt „Bester Kandidat je Person aus A“, wie sich die Scores verteilen. Diese Zahlen
+  enthalten keine Personendaten und helfen bei der Fehlersuche.
 
 Spalten selbst festlegen (dann entfällt die Rückfrage):
 
@@ -84,7 +91,7 @@ Werte werden unverändert übernommen: Excel-Werte mit Typ und Zahlenformat (ein
 CSV-Werte als Text (führende Nullen bleiben). Kopfzeile fixiert, Autofilter, passende Spaltenbreiten.
 
 **Blatt „Protokoll“**: Eingabedateien, Kodierung/Trennzeichen, gewählte Spalten, Schwellen, Anzahl je Status,
-doppelte Namen innerhalb einer Datei, Zeitpunkt, Tool-Version.
+Verteilung der besten Scores, Warnungen, doppelte Namen innerhalb einer Datei, Zeitpunkt, Tool-Version.
 **Blatt „Kandidaten“**: je Person aus A die drei besten Kandidaten aus B mit Score und Zeilennummer.
 
 ## So wird verglichen

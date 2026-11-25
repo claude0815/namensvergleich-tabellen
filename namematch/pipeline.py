@@ -19,7 +19,7 @@ from dataclasses import dataclass, field, replace
 from pathlib import Path
 
 from . import __version__
-from .columns import Namensspalten, Zusatzspalten, vorschlagen
+from .columns import Namensspalten, Zusatzspalten, namensspalten_pruefen, vorschlagen
 from .config import Einstellungen
 from .errors import AusgabeFehler, SpaltenFehler
 from .io import Einleseoptionen, Tabelle, einlesen, zelltext
@@ -80,10 +80,15 @@ class Laufergebnis:
     duplikate_b: list[list[int]]
     zeitpunkt: dt.datetime
     ausgabe: Path | None = None
+    warnungen: list[str] = field(default_factory=list)  # nur Spaltennamen und Zahlen, nie Zellinhalte
 
     def zaehlung(self) -> dict[Status, int]:
         """Anzahl Zeilen je Status."""
         return self.abgleich.zaehlung()
+
+    def verteilung(self) -> dict[str, int]:
+        """Bester Kandidaten-Score je Person aus A, gruppiert (zur Einschätzung ohne Zellinhalte)."""
+        return _verteilung(self.abgleich, self.personen_a, self.einstellungen)
 
     def protokoll(self) -> list[Protokollzeile]:
         """Inhalt des Blatts „Protokoll“."""
@@ -112,6 +117,74 @@ def spaltenwahl_pruefen(wahl: Spaltenwahl, tab_a: Tabelle, tab_b: Tabelle) -> No
                     f"Spalte „{spalte}“ gibt es in Datei {kennung} ({tab.quelle.name}) nicht. "
                     f"Vorhanden: {', '.join(f'„{s}“' for s in tab.spalten)}"
                 )
+
+
+def spalten_warnungen(tab_a: Tabelle, tab_b: Tabelle, wahl: Spaltenwahl) -> list[str]:
+    """Plausibilitätsprüfung der gewählten Namensspalten beider Dateien (vor dem Abgleich anzeigbar)."""
+    return namensspalten_pruefen(tab_a, wahl.namen_a, "A") + namensspalten_pruefen(tab_b, wahl.namen_b, "B")
+
+
+def _verteilung(abgleich: Abgleich, personen_a: Sequence[Person], e: Einstellungen) -> dict[str, int]:
+    bereiche = {f"{e.schwelle_sicher}–100": 0, f"{e.schwelle_pruefen}–{e.schwelle_sicher - 1}": 0,
+                f"40–{e.schwelle_pruefen - 1}": 0, "unter 40": 0, "kein Kandidat": 0}
+    namen = list(bereiche)
+    for zeile in abgleich.zeilen_a:
+        if zeile.a is None or personen_a[zeile.a].name.art is Art.LEER:
+            continue
+        kandidaten = abgleich.kandidaten.get(zeile.a, [])
+        if not kandidaten:
+            bereiche["kein Kandidat"] += 1
+            continue
+        score = kandidaten[0][1]
+        if score >= e.schwelle_sicher:
+            bereiche[namen[0]] += 1
+        elif score >= e.schwelle_pruefen:
+            bereiche[namen[1]] += 1
+        elif score >= 40:
+            bereiche[namen[2]] += 1
+        else:
+            bereiche["unter 40"] += 1
+    return bereiche
+
+
+def _ergebnis_warnungen(abgleich: Abgleich, personen_a: Sequence[Person], personen_b: Sequence[Person],
+                        e: Einstellungen) -> list[str]:
+    """Warnt, wenn das Ergebnis nach falscher Spaltenwahl aussieht (nur Anteile, keine Zellinhalte)."""
+    mit_namen = [z for z in abgleich.zeilen_a if z.a is not None and personen_a[z.a].name.art is not Art.LEER]
+    if len(mit_namen) < 10:
+        return []
+
+    def bester(z) -> int | None:
+        kandidaten = abgleich.kandidaten.get(z.a, [])
+        return kandidaten[0][1] if kandidaten else None
+
+    warnungen: list[str] = []
+    # Regel 1: viele ohne Treffer, aber mit Kandidaten knapp unter der Prüfen-Schwelle
+    ohne_treffer = [z for z in mit_namen if z.status is Status.NUR_A]
+    schwach = [z for z in ohne_treffer if (s := bester(z)) is not None and 40 <= s < e.schwelle_pruefen]
+    if len(ohne_treffer) >= 0.5 * len(mit_namen) and len(schwach) >= 0.5 * len(ohne_treffer):
+        anteil = round(100 * len(ohne_treffer) / len(mit_namen))
+        warnungen.append(
+            f"Bei {anteil} % der Personen aus A wurde kein Treffer gefunden, meist gibt es aber Kandidaten mit "
+            f"Score 40–{e.schwelle_pruefen - 1}. Das deutet auf eine falsche Namensspalte hin (z. B. Kurzname "
+            "oder Kennung statt Nachname). Bitte zuerst die Spaltenwahl prüfen, nicht die Schwellen senken.")
+        return warnungen
+
+    # Regel 2: beide Dateien mit vollen Namen, aber kaum sichere und viele nur ähnliche Kandidaten
+    def anteil_voll(personen: Sequence[Person]) -> float:
+        gueltig = [p for p in personen if p.name.art is not Art.LEER]
+        return sum(1 for p in gueltig if p.name.art is Art.VOLL) / len(gueltig) if gueltig else 0.0
+
+    if anteil_voll(personen_a) >= 0.7 and anteil_voll(personen_b) >= 0.7:
+        sicher = sum(1 for z in mit_namen if (s := bester(z)) is not None and s >= e.schwelle_sicher)
+        aehnlich = sum(1 for z in mit_namen if (s := bester(z)) is not None and 40 <= s < e.schwelle_sicher)
+        if sicher < 0.2 * len(mit_namen) and aehnlich >= 0.5 * len(mit_namen):
+            warnungen.append(
+                f"Nur {round(100 * sicher / len(mit_namen))} % der Personen aus A haben einen sicheren Kandidaten, "
+                f"aber {round(100 * aehnlich / len(mit_namen))} % einen nur ähnlichen. Die Namen weichen "
+                "systematisch voneinander ab – häufigste Ursache ist eine falsche Namensspalte (z. B. Kurzname "
+                "statt Nachname). Bitte die Spaltenwahl prüfen, bevor die Treffer übernommen werden.")
+    return warnungen
 
 
 def _personen(tab: Tabelle, namen: Namensspalten, merkmale: dict[str, str], norm: Normalisierer) -> list[Person]:
@@ -165,10 +238,13 @@ def abgleichen(tab_a: Tabelle, tab_b: Tabelle, wahl: Spaltenwahl, einstellungen:
     abgleich = matcher.abgleichen(personen_a, personen_b, fortschritt)
     duplikate_a, duplikate_b = _duplikate(personen_a), _duplikate(personen_b)
     log.info("Duplikate: %d Gruppen in A, %d Gruppen in B", len(duplikate_a), len(duplikate_b))
+    warnungen = spalten_warnungen(tab_a, tab_b, wahl) + _ergebnis_warnungen(abgleich, personen_a, personen_b, einstellungen)
+    for warnung in warnungen:
+        log.info("Warnung: %s", warnung)  # enthält nur Spaltennamen und Zahlen
     return Laufergebnis(
         tab_a=tab_a, tab_b=tab_b, wahl=wahl, einstellungen=einstellungen, abgleich=abgleich,
         personen_a=personen_a, personen_b=personen_b, duplikate_a=duplikate_a, duplikate_b=duplikate_b,
-        zeitpunkt=zeitpunkt or dt.datetime.now().replace(microsecond=0),
+        zeitpunkt=zeitpunkt or dt.datetime.now().replace(microsecond=0), warnungen=warnungen,
     )
 
 
@@ -281,6 +357,17 @@ def _protokoll(erg: Laufergebnis) -> list[Protokollzeile]:
         Protokollzeile("Davon zugeordnete Paare", zugeordnet),
         Protokollzeile("Genau bewertete Kandidatenpaare", erg.abgleich.anzahl_paare),
     ]
+
+    z.append(Protokollzeile("Bester Kandidat je Person aus A", ueberschrift=True))
+    for bereich, anzahl in erg.verteilung().items():
+        z.append(Protokollzeile(f"Score {bereich}" if bereich[0].isdigit() else bereich.capitalize(), anzahl))
+
+    z.append(Protokollzeile("Warnungen", ueberschrift=True))
+    if erg.warnungen:
+        for nummer, warnung in enumerate(erg.warnungen, start=1):
+            z.append(Protokollzeile(f"Warnung {nummer}", warnung))
+    else:
+        z.append(Protokollzeile("Keine Warnungen", None))
 
     for kennung, gruppen, tab, personen in (("A", erg.duplikate_a, erg.tab_a, erg.personen_a),
                                             ("B", erg.duplikate_b, erg.tab_b, erg.personen_b)):
