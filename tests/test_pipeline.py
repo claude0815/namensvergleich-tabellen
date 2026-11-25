@@ -25,7 +25,8 @@ def _zuordnung(ergebnis) -> dict[str, tuple[str, str | None]]:
 
 
 @pytest.mark.parametrize("datei_b", ["schueler_b_semikolon_cp1252.csv", "schueler_b_komma_utf8.csv",
-                                     "schueler_b_tab_utf8bom.csv", "schueler_b.xlsx", "schueler_b.xls"])
+                                     "schueler_b_tab_utf8bom.csv", "schueler_b.xlsx", "schueler_b.xls",
+                                     "schueler_b_semikolon_macroman.csv"])
 def test_erwartete_zuordnung(datei_b: str) -> None:
     ergebnis = ausfuehren(FIX / "schueler_a.xlsx", FIX / datei_b, ausgabe=None)
     ist = _zuordnung(ergebnis)
@@ -138,3 +139,24 @@ def test_warnung_bei_schwachen_kandidaten_unter_der_schwelle() -> None:
                                             Namensspalten(voll="SchülerIn")))
     assert ergebnis.zaehlung()[Status.NUR_A] > len(a_zeilen) / 2
     assert any("kein Treffer gefunden" in w and "nicht die Schwellen senken" in w for w in ergebnis.warnungen)
+
+
+def test_mac_excel_csv_mit_mehreren_umlauten() -> None:
+    """Praxisfall: Spalte gelöscht, in Excel für Mac als „CSV“ (Mac Roman) gespeichert."""
+    ergebnis = ausfuehren(FIX / "webuntis_a_mac.csv", FIX / "schuelerliste_b.xlsx", ausgabe=None)
+    assert ergebnis.tab_a.kodierung == "mac_roman"
+    assert ergebnis.wahl.namen_a == Namensspalten(vorname="foreName", nachname="longName")
+    i_nach = ergebnis.tab_a.spalte("longName")
+    status = {ergebnis.tab_a.zeilen[z.a][i_nach]: z for z in ergebnis.abgleich.zeilen_a}
+    for nachname in ("Bülüköz", "Größmüller", "Müller-Lang", "Müller"):
+        assert status[nachname].status is Status.SICHER, nachname
+    vertauscht = status[fx.WEBUNTIS_VERTAUSCHT[1]]
+    assert vertauscht.status is Status.PRUEFEN
+    assert "Vor- und Nachname vertauscht" in vertauscht.hinweise
+    assert not any("Kodierung" in w for w in ergebnis.warnungen)
+
+
+def test_falsche_kodierung_wird_gemeldet() -> None:
+    ergebnis = ausfuehren(FIX / "webuntis_a_mac.csv", FIX / "schuelerliste_b.xlsx", ausgabe=None,
+                          optionen_a=Einleseoptionen(kodierung="cp1252"))
+    assert any("Kodierung" in w and "„longName“" in w for w in ergebnis.warnungen)

@@ -189,6 +189,10 @@ class Matcher:
                     teile = self._gv * s_vor + self._gn * s_nach
                     if teile > beste:
                         beste, kurz = teile, art_vor == "kurzform"
+            # Vor- und Nachname exakt vertauscht (z. B. „Vorname, Nachname“ in einer „Nachname, Vorname“-Liste):
+            # gleiche Person wahrscheinlich, aber nie „Sicher“ → Hinweis und Deckel wie bei Teilinformation
+            if "".join(a.vorname) == "".join(b.nachname) and "".join(a.nachname) == "".join(b.vorname):
+                return _Namensvergleich(100.0, False, "Vor- und Nachname vertauscht", False)
             gesamt = fuzz.token_sort_ratio(" ".join(a.teile), " ".join(b.teile))
             roh = ANTEIL_TEILE * beste + (1 - ANTEIL_TEILE) * gesamt
             return _Namensvergleich(roh, False, None, kurz)

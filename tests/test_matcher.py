@@ -299,3 +299,24 @@ def test_abweichendes_geburtsdatum_auch_bei_anderen_schwellen() -> None:
                      [person(0, "Max Mustermann", geburtsdatum=dt.date(2013, 6, 1))]).zeilen_a[0]
     assert z.status is Status.PRUEFEN
     assert z.score == 84
+
+
+def test_vor_und_nachname_vertauscht_ist_pruefen(matcher: Matcher) -> None:
+    """„Vorname, Nachname“ in einer Liste, die sonst „Nachname, Vorname“ verwendet."""
+    z = abgleich(matcher, [("Emil", "Bülüköz")], ["Emil, Bülüköz"]).zeilen_a[0]
+    assert z.status is Status.PRUEFEN
+    assert "Vor- und Nachname vertauscht" in z.hinweise
+    z2 = abgleich(matcher, [("Max", "Thomas")], [("Thomas", "Max")]).zeilen_a[0]
+    assert z2.status is Status.PRUEFEN
+
+
+def test_vertauscht_nur_bei_exakter_vertauschung(matcher: Matcher) -> None:
+    """Gleicher Vor- wie Nachname bei verschiedenen Personen erzeugt keinen Treffer."""
+    z = abgleich(matcher, [("Paul", "Simon")], [("Simon", "Wagner")]).zeilen_a[0]
+    assert z.status is Status.NUR_A
+
+
+def test_mehrere_umlaute_und_zeichensalat(matcher: Matcher) -> None:
+    kaputt = "Bülüköz, Emil".encode("utf-8").decode("cp1252")
+    z = abgleich(matcher, [("Emil", "Bülüköz")], [kaputt]).zeilen_a[0]
+    assert (z.status, z.score) == (Status.SICHER, 100)

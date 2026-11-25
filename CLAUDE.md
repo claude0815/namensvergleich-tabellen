@@ -71,4 +71,9 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
   `longName` wird als Nachname erkannt. Zusätzlich Plausibilitätsprüfung der Namensspalten
   (`columns.namensspalten_pruefen`) und Ergebniswarnungen (`pipeline._ergebnis_warnungen`) – nur Anteile
   und Spaltennamen, nie Zellinhalte. Bei schlechten Ergebnissen erst die Spaltenwahl prüfen, nicht die Schwellen.
+- Praxistest 2: Namen mit mehreren Umlauten wurden nicht gefunden → Ursache falsche CSV-Kodierung
+  (Excel für Mac speichert „CSV“ in Mac Roman). `kodierung.py`: BOM → UTF-8 → überwiegend UTF-8
+  (einzelne cp1252-Bytes) → plausibelste aus cp1252/mac_roman/cp850 (cp1252 bevorzugt, solange keine
+  verdächtigen Zeichen entstehen). Zeichensalat-Reparatur nur für den Vergleich (`falten`),
+  Warnung bei verdächtigen Zeichen in Namensspalten. Exakt vertauschte Vor-/Nachnamen → Prüfen mit Hinweis.
 - GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

@@ -60,3 +60,15 @@ def test_warnungen_ohne_zellinhalte() -> None:
     text = " ".join(namensspalten_pruefen(tab, Namensspalten(vorname="foreName", nachname="name"), "A"))
     for inhalt in ("Max", "MustMax", "Anna", "SchuAnn", "Jens", "10236"):
         assert inhalt not in text
+
+
+def test_warnung_bei_falscher_kodierung() -> None:
+    kaputt = ["Bülüköz, Emil".encode("mac_roman").decode("cp1252"), "Müller, Anna".encode("utf-8").decode("cp1252"),
+              "Schulz, Max"]
+    tab = _tab(["SchülerIn"], [[w] for w in kaputt])
+    tab.kodierung = "cp1252"
+    warnungen = namensspalten_pruefen(tab, Namensspalten(voll="SchülerIn"), "B")
+    text = " ".join(warnungen)
+    assert "Kodierung" in text and "„SchülerIn“" in text and "2 Werte" in text
+    for inhalt in ("Bülüköz", "Emil", "Müller", "Anna"):
+        assert inhalt not in text

@@ -45,6 +45,11 @@ python3 -m venv .venv
 - Die gewählten Namensspalten werden vor dem Lauf auf Plausibilität geprüft. Es gibt eine **WARNUNG**,
   wenn eine Spalte eher wie Kurzname, Benutzername oder Kennung aussieht oder wenn das Ergebnis auf eine
   falsche Spaltenwahl hindeutet. Die Meldungen enthalten nur Spaltennamen und Prozentwerte.
+- **Kodierung von CSV-Dateien** wird automatisch erkannt: UTF-8 (auch mit BOM oder einzelnen
+  Windows-Zeichen), Windows-1252 (Excel unter Windows), **Mac Roman (Excel für Mac, Format „CSV“)**
+  und CP850. Empfehlung beim Speichern aus Excel: Format **„CSV UTF-8“**. Enthalten Namensspalten
+  Zeichensalat wie „Ã¼“ oder „Ÿ“ statt Umlauten, gibt es eine WARNUNG. Dann mit `--kodierung-a/-b`
+  die richtige Kodierung angeben.
 - **WebUntis-Exporte:** Der Nachname steht in `longName`, der Vorname in `foreName`. Die Spalte `name` ist
   der *Kurzname* und darf nicht als Nachname verwendet werden (wird automatisch richtig erkannt).
 - Nach dem Lauf zeigt „Bester Kandidat je Person aus A“, wie sich die Scores verteilen. Diese Zahlen
@@ -104,7 +109,9 @@ Verteilung der besten Scores, Warnungen, doppelte Namen innerhalb einer Datei, Z
    beide Lesarten probiert.
 3. **Regeln**: „Sicher“ nur, wenn die Namen nach Vereinheitlichung gleich sind; jede echte Abweichung
    (Tippfehler, Kurzform Alex/Alexander, Doppelname teilweise) bleibt in „Prüfen“. Steht auf einer Seite nur
-   ein Vor- oder Nachname, ist der Score auf 80 gedeckelt.
+   ein Vor- oder Nachname, ist der Score auf 80 gedeckelt. Sind Vor- und Nachname genau vertauscht
+   („Emil, Bülüköz“ in einer „Nachname, Vorname“-Liste), gibt es „Prüfen“ mit Hinweis. UTF-8-Zeichensalat
+   („BÃ¼lÃ¼kÃ¶z“) wird für den Vergleich repariert; die Originalwerte bleiben unverändert.
 4. **Zusatzmerkmale**: Klasse gleich +5 (abweichend nur Hinweis, „7 b“ = „07B“); Geburtsdatum/E-Mail gleich
    +10, abweichend −10 **und höchstens „Prüfen“** (gleicher Name, anderes Geburtsdatum kann eine andere
    Person sein). Merkmale allein erzeugen nie einen Treffer; die Klasse allein hebt nie auf „Sicher“.

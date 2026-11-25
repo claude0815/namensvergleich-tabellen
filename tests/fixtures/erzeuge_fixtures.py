@@ -223,6 +223,7 @@ def alle_schreiben(ordner: Path = ORDNER) -> list[Path]:
         ("schueler_b_semikolon_cp1252.csv", ";", "cp1252", "\r\n"),
         ("schueler_b_komma_utf8.csv", ",", "utf-8", "\n"),
         ("schueler_b_tab_utf8bom.csv", "\t", "utf-8-sig", "\r\n"),
+        ("schueler_b_semikolon_macroman.csv", ";", "mac_roman", "\r"),  # Excel für Mac, Format „CSV“
     ]
     for name, trennzeichen, kodierung, ende in varianten:
         (ordner / name).write_bytes(_csv_text(SPALTEN_B, zeilen_b, trennzeichen, ende).encode(kodierung))
@@ -261,7 +262,10 @@ def alle_schreiben(ordner: Path = ORDNER) -> list[Path]:
 WEBUNTIS_SONDERFAELLE = [
     ("Max", "Mustermann", "7b"), ("Anna-Lena", "Schulz", "6c"), ("Jürgen", "Müller", "8a"),
     ("Sabine", "Müller-Lang", "9a"), ("Özlem", "Yılmaz", "7a"), ("Ludwig", "van Beethoven", "10a"),
+    ("Emil", "Bülüköz", "7a"), ("Jürgen", "Größmüller", "9b"), ("Ömer", "Çağlayan", "8b"),
 ]
+#: steht in B als „Vorname, Nachname“ (vertauscht) – erwartet: Prüfen mit Hinweis
+WEBUNTIS_VERTAUSCHT = ("Mila", "Kühnöl", "6a")
 
 
 def _kurzname(vorname: str, nachname: str) -> str:
@@ -281,17 +285,27 @@ def webuntis_daten() -> tuple[list[list], list[list], int]:
         if k % 5 != 4:
             b_zeilen.append([f"{nach}, {vor}", klasse])
             gemeinsam += 1
+    vor, nach, klasse = WEBUNTIS_VERTAUSCHT
+    a_zeilen.append([_kurzname(vor, nach), nach, vor, "w", "2012-12-12", klasse])
+    b_zeilen.append([f"{vor}, {nach}", klasse])
     b_zeilen.append(["Becker, Tom", "5b"])
     return a_zeilen, b_zeilen, gemeinsam
 
 
 def webuntis_schreiben(ordner: Path = ORDNER) -> list[Path]:
-    """Schreibt webuntis_a.csv und schuelerliste_b.xlsx."""
+    """Schreibt webuntis_a.csv, webuntis_a_mac.csv und schuelerliste_b.xlsx.
+
+    webuntis_a_mac.csv bildet nach, was passiert, wenn man die Spalte „name“ löscht und die Datei
+    in Excel für Mac im Format „CSV“ speichert: Mac-Roman-Kodierung, nicht darstellbare Zeichen („ı“,
+    „ğ“) werden zu „?“.
+    """
     a_zeilen, b_zeilen, _ = webuntis_daten()
     kopf_a = ["name", "longName", "foreName", "gender", "birthDate", "klasse.name"]
     (ordner / "webuntis_a.csv").write_bytes(_csv_text(kopf_a, a_zeilen, ";", "\r\n").encode("utf-8-sig"))
+    mac = _csv_text(kopf_a[1:], [z[1:] for z in a_zeilen], ";", "\r").encode("mac_roman", errors="replace")
+    (ordner / "webuntis_a_mac.csv").write_bytes(mac)
     _xlsx_schreiben(ordner / "schuelerliste_b.xlsx", [("Schüler", ["SchülerIn", "Klasse"], b_zeilen)])
-    return [ordner / "webuntis_a.csv", ordner / "schuelerliste_b.xlsx"]
+    return [ordner / "webuntis_a.csv", ordner / "webuntis_a_mac.csv", ordner / "schuelerliste_b.xlsx"]
 
 
 def grosse_listen(ordner: Path, anzahl: int = 5000, seed: int = 2025) -> tuple[Path, Path]:

@@ -11,6 +11,7 @@ from collections.abc import Sequence
 from typing import Any
 from dataclasses import dataclass
 
+from .kodierung import verdaechtig
 from .normalize import falten
 
 _NICHT_ALNUM = re.compile(r"[^0-9a-z]+")
@@ -188,6 +189,15 @@ def namensspalten_pruefen(tabelle: Any, namen: Namensspalten, kennung: str) -> l
         if not werte:
             warnungen.append(f"{datei}: die Namensspalte „{spalte}“ ist komplett leer.")
             continue
+        salat = sum(1 for w in werte if verdaechtig(w))
+        if salat:
+            erkannt = f" (erkannt: {tabelle.kodierung})" if getattr(tabelle, "kodierung", None) else ""
+            warnungen.append(
+                f"{datei}: {salat} Werte in Spalte „{spalte}“ enthalten ungewöhnliche Zeichen wie „Ã¼“ oder „Ÿ“ "
+                f"statt Umlauten – vermutlich falsche Kodierung{erkannt}. Namen mit Umlauten werden dann schlecht "
+                f"gefunden. Bitte die Datei als „CSV UTF-8“ speichern oder die Kodierung angeben, z. B. "
+                f"--kodierung-{kennung.lower()} utf-8 / mac_roman / cp1252."
+            )
         ziffern = sum(1 for w in werte if _ZIFFER.search(w)) / len(werte)
         if ziffern >= 0.2:
             warnungen.append(f"{datei}: in Spalte „{spalte}“ enthalten {_prozent(ziffern)} der Werte Ziffern – "

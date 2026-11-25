@@ -226,3 +226,17 @@ def test_email() -> None:
     assert email_normalisieren(" Max.Mustermann@Example.ORG ") == "max.mustermann@example.org"
     assert email_normalisieren("mailto:a@b.de") == "a@b.de"
     assert email_normalisieren("") is None
+
+
+def test_zeichensalat_wird_fuer_vergleich_repariert(norm: Normalisierer) -> None:
+    """UTF-8 als Windows-1252 gelesen („BÃ¼lÃ¼kÃ¶z“) – z. B. in einer Excel-Datei gespeichert."""
+    kaputt = "Bülüköz, Emil".encode("utf-8").decode("cp1252")
+    assert kaputt.startswith("BÃ¼l")
+    assert norm.voller_name(kaputt).teile == norm.voller_name("Bülüköz, Emil").teile
+    assert falten("GrÃ¶ÃŸmÃ¼ller") == "groessmueller"
+
+
+def test_keine_reparatur_bei_normalen_namen() -> None:
+    for name in ("João", "Ãngel", "Košek", "Ærø", "Åsa"):
+        assert falten(name) == falten(name)  # kein Fehler
+    assert falten("João") == "joao"

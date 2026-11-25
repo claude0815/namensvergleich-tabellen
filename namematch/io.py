@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+from . import kodierung as kodierung_
 from .errors import EingabeFehler
 
 log = logging.getLogger(__name__)
@@ -147,7 +148,7 @@ def _aufbereiten(quelle: Path, dateityp: str, roh: list[list[Any]], formate: lis
 # --- CSV ---------------------------------------------------------------------------
 
 def _dekodieren(daten: bytes, kodierung: str | None, quelle: Path) -> tuple[str, str]:
-    """Liefert (Kodierung, Text). Reihenfolge: BOM → UTF-8 → Windows-1252."""
+    """Liefert (Kodierung, Text): BOM → UTF-8 → überwiegend UTF-8 → plausibelste Einbyte-Kodierung."""
     if kodierung:
         try:
             codecs.lookup(kodierung)
@@ -162,7 +163,11 @@ def _dekodieren(daten: bytes, kodierung: str | None, quelle: Path) -> tuple[str,
                 "oder die automatische Erkennung verwenden."
             ) from None
     if daten.startswith(codecs.BOM_UTF8):
-        return "utf-8-sig", daten.decode("utf-8-sig", errors="strict")
+        rumpf = daten[len(codecs.BOM_UTF8):]
+        try:
+            return "utf-8-sig", rumpf.decode("utf-8")
+        except UnicodeDecodeError:
+            return "utf-8-sig (einzelne Zeichen cp1252)", kodierung_.gemischt_dekodieren(rumpf)
     if daten.startswith((codecs.BOM_UTF16_LE, codecs.BOM_UTF16_BE)):
         try:
             return "utf-16", daten.decode("utf-16")
@@ -172,10 +177,9 @@ def _dekodieren(daten: bytes, kodierung: str | None, quelle: Path) -> tuple[str,
         return "utf-8", daten.decode("utf-8")
     except UnicodeDecodeError:
         pass
-    try:
-        return "cp1252", daten.decode("cp1252")
-    except UnicodeDecodeError:
-        return "latin-1", daten.decode("latin-1")
+    if kodierung_.ueberwiegend_utf8(daten):
+        return "utf-8 (einzelne Zeichen cp1252)", kodierung_.gemischt_dekodieren(daten)
+    return kodierung_.einbyte_waehlen(daten)
 
 
 def _trennzeichen_erkennen(text: str) -> str:

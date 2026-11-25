@@ -16,6 +16,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import KonfigurationsFehler
+from .kodierung import zeichensalat_reparieren
 
 # Ersetzungen vor dem Entfernen der Akzente (ä → ae statt ä → a)
 _ERSETZUNGEN = {
@@ -28,8 +29,8 @@ _TITEL_STUECKE = re.compile(r"[^.\-]+\.?")
 
 
 def falten(text: str) -> str:
-    """Vereinheitlicht Schreibweisen: klein, ä→ae, ß→ss, Akzente entfernt."""
-    text = unicodedata.normalize("NFC", text).casefold()
+    """Vereinheitlicht Schreibweisen: klein, ä→ae, ß→ss, Akzente entfernt, Zeichensalat („Ã¼“) repariert."""
+    text = zeichensalat_reparieren(unicodedata.normalize("NFC", text)).casefold()
     text = "".join(_ERSETZUNGEN.get(zeichen, zeichen) for zeichen in text)
     text = unicodedata.normalize("NFKD", text)
     return "".join(zeichen for zeichen in text if not unicodedata.combining(zeichen))

@@ -30,6 +30,7 @@ def _als_vergleich(zeilen: list[list]) -> list[list]:
         ("schueler_b_semikolon_cp1252.csv", "cp1252", ";"),
         ("schueler_b_komma_utf8.csv", "utf-8", ","),
         ("schueler_b_tab_utf8bom.csv", "utf-8-sig", "\t"),
+        ("schueler_b_semikolon_macroman.csv", "mac_roman", ";"),
     ],
 )
 def test_csv_varianten(datei: str, kodierung: str, trennzeichen: str) -> None:
@@ -179,3 +180,35 @@ def test_zelltext() -> None:
     assert zelltext(dt.datetime(2012, 3, 14)) == "2012-03-14"
     assert zelltext(dt.datetime(2012, 3, 14, 8, 30)) == "2012-03-14 08:30:00"
     assert zelltext(True) == "WAHR"
+
+
+# --- Kodierung: Mac-Excel (Mac Roman), DOS (CP850), gemischte Dateien ------------------------
+
+NAMEN_MIT_UMLAUTEN = "Name;Klasse\nBülüköz, Emil;7a\nGrößmüller, Jürgen;8b\nÄrmel, Ötzi;5c\nMüller, Anna;6a\n"
+
+
+@pytest.mark.parametrize("kodierung", ["cp1252", "mac_roman", "cp850", "utf-8", "utf-8-sig"])
+def test_kodierung_mit_vielen_umlauten(tmp_path: Path, kodierung: str) -> None:
+    datei = tmp_path / "x.csv"
+    datei.write_bytes(NAMEN_MIT_UMLAUTEN.encode(kodierung))
+    tab = einlesen(datei)
+    assert tab.kodierung == kodierung
+    assert [z[0] for z in tab.zeilen] == ["Bülüköz, Emil", "Größmüller, Jürgen", "Ärmel, Ötzi", "Müller, Anna"]
+
+
+def test_gemischte_datei_utf8_mit_einzelnem_cp1252_zeichen(tmp_path: Path) -> None:
+    """Meist UTF-8, aber eine Zeile aus einer anderen Quelle in Windows-1252."""
+    datei = tmp_path / "x.csv"
+    datei.write_bytes(NAMEN_MIT_UMLAUTEN.encode("utf-8") + "Schäfer, Tim;9a\n".encode("cp1252"))
+    tab = einlesen(datei)
+    assert tab.kodierung.startswith("utf-8")
+    assert [z[0] for z in tab.zeilen][0] == "Bülüköz, Emil"
+    assert [z[0] for z in tab.zeilen][-1] == "Schäfer, Tim"
+
+
+def test_cp1252_mit_osteuropaeischen_namen_bleibt_cp1252(tmp_path: Path) -> None:
+    datei = tmp_path / "x.csv"
+    datei.write_bytes("Name;Klasse\nKošek, Jana;7a\nŽiga, Luka;8b\n".encode("cp1252"))
+    tab = einlesen(datei)
+    assert tab.kodierung == "cp1252"
+    assert tab.zeilen[0][0] == "Košek, Jana"
