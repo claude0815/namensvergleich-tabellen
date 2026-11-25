@@ -259,8 +259,9 @@ class Matcher:
             else:
                 hinweise.append(f"Klasse abweichend: {a.klasse_original} / {b.klasse_original}")
 
-        # Geburtsdatum, E-Mail (zuverlässig): gleich → Bonus, abweichend → Abzug
+        # Geburtsdatum, E-Mail (zuverlässig): gleich → Bonus, abweichend → Abzug und höchstens „Prüfen“
         bonus_zuverlaessig = 0.0
+        merkmal_abweichend = False
         for wert_a, wert_b, bonus, abzug, text in (
             (a.geburtsdatum, b.geburtsdatum, e.bonus_geburtsdatum, e.abzug_geburtsdatum, "Geburtsdatum abweichend"),
             (a.email, b.email, e.bonus_email, e.abzug_email, "E-Mail abweichend"),
@@ -271,6 +272,7 @@ class Matcher:
                 bonus_zuverlaessig += bonus if bonus_erlaubt else 0.0
             else:
                 bonus_zuverlaessig -= abzug
+                merkmal_abweichend = True
                 hinweise.append(text)
 
         score = basis + bonus_klasse
@@ -279,6 +281,8 @@ class Matcher:
         score += bonus_zuverlaessig
         if nv.teilweise:
             score = min(score, obergrenze)  # Deckel für Teilinformation bleibt
+        if merkmal_abweichend:
+            score = min(score, obergrenze)  # gleicher Name, anderes Geburtsdatum → evtl. andere Person
         score = max(0.0, min(100.0, score))
         rang = basis + bonus_klasse + bonus_zuverlaessig  # ohne Deckel, nur für Gleichstände
         return Bewertung(_runden(score), _runden(nv.score), nv.teilweise is not None, tuple(hinweise), rang)

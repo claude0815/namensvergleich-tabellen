@@ -74,7 +74,7 @@ Exit-Codes: 0 = OK, 1 = Fehler, 2 = Bedienfehler (z. B. fehlendes `-o`), 3 = abg
 
 | Status | Farbe | Bedeutung |
 | --- | --- | --- |
-| Sicher | grün | Score ≥ 90: Name nach Vereinheitlichung gleich (oder Tippfehler + gleiches Geburtsdatum/E-Mail) |
+| Sicher | grün | Score ≥ 90: Name nach Vereinheitlichung gleich (oder Tippfehler + gleiches Geburtsdatum/E-Mail), kein zuverlässiges Merkmal abweichend |
 | Prüfen | gelb | Score 70–89: ähnlich, Sichtprüfung nötig |
 | Mehrdeutig | gelb | zwei Kandidaten liegen weniger als 5 Punkte auseinander; der 2. Kandidat steht im Hinweis |
 | Nur in A | rot | kein Treffer (Hinweis nennt ggf. den besten Kandidaten unter der Schwelle) |
@@ -99,7 +99,8 @@ doppelte Namen innerhalb einer Datei, Zeitpunkt, Tool-Version.
    (Tippfehler, Kurzform Alex/Alexander, Doppelname teilweise) bleibt in „Prüfen“. Steht auf einer Seite nur
    ein Vor- oder Nachname, ist der Score auf 80 gedeckelt.
 4. **Zusatzmerkmale**: Klasse gleich +5 (abweichend nur Hinweis, „7 b“ = „07B“); Geburtsdatum/E-Mail gleich
-   +10, abweichend −10. Merkmale allein erzeugen nie einen Treffer; die Klasse allein hebt nie auf „Sicher“.
+   +10, abweichend −10 **und höchstens „Prüfen“** (gleicher Name, anderes Geburtsdatum kann eine andere
+   Person sein). Merkmale allein erzeugen nie einen Treffer; die Klasse allein hebt nie auf „Sicher“.
 5. **Zuordnung** global 1:1 nach höchstem Score (jede Zeile aus B höchstens einmal), deterministisch.
 
 ## Datenschutz

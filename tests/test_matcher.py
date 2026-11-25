@@ -269,3 +269,33 @@ def test_klasse_entscheidet_bei_gleichen_namen_in_a(matcher: Matcher) -> None:
     assert erg.zeilen_a[1].b == 0
     assert erg.zeilen_a[1].status is Status.MEHRDEUTIG  # gleicher Name zweimal → Sichtprüfung
     assert erg.zeilen_a[0].status is Status.NUR_A
+
+
+def test_gleicher_name_anderes_geburtsdatum_ist_pruefen(matcher: Matcher) -> None:
+    z = matcher.abgleichen([person(0, "Max Mustermann", geburtsdatum=dt.date(2012, 3, 14))],
+                           [person(0, "Max Mustermann", geburtsdatum=dt.date(2013, 6, 1))]).zeilen_a[0]
+    assert z.status is Status.PRUEFEN
+    assert z.score == 89
+    assert "Geburtsdatum abweichend" in z.hinweise
+
+
+def test_gleicher_name_andere_email_ist_pruefen(matcher: Matcher) -> None:
+    z = matcher.abgleichen([person(0, "Max Mustermann", email="max@example.org")],
+                           [person(0, "Max Mustermann", email="m.mustermann@example.org")]).zeilen_a[0]
+    assert z.status is Status.PRUEFEN
+    assert "E-Mail abweichend" in z.hinweise
+
+
+def test_widerspruechliche_merkmale_bleiben_pruefen(matcher: Matcher) -> None:
+    # Geburtsdatum abweichend (−10), E-Mail gleich (+10): trotzdem nicht „Sicher“
+    z = matcher.abgleichen([person(0, "Max Mustermann", geburtsdatum=dt.date(2012, 3, 14), email="m@x.de")],
+                           [person(0, "Max Mustermann", geburtsdatum=dt.date(2013, 6, 1), email="m@x.de")]).zeilen_a[0]
+    assert z.status is Status.PRUEFEN
+
+
+def test_abweichendes_geburtsdatum_auch_bei_anderen_schwellen() -> None:
+    m = Matcher(replace(E, schwelle_sicher=85), Spitznamen())
+    z = m.abgleichen([person(0, "Max Mustermann", geburtsdatum=dt.date(2012, 3, 14))],
+                     [person(0, "Max Mustermann", geburtsdatum=dt.date(2013, 6, 1))]).zeilen_a[0]
+    assert z.status is Status.PRUEFEN
+    assert z.score == 84

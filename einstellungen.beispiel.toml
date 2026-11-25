@@ -19,9 +19,9 @@ kurzform = 85            # Score für Kurzformen aus der Spitznamen-Liste (Alex/
 [zusatzmerkmale]
 bonus_klasse = 5         # Klasse gleich → Bonus (abweichend: kein Abzug, nur Hinweis)
 bonus_geburtsdatum = 10  # Geburtsdatum gleich → Bonus
-abzug_geburtsdatum = 10  # Geburtsdatum abweichend → Abzug
+abzug_geburtsdatum = 10  # Geburtsdatum abweichend → Abzug (und immer höchstens „Prüfen“)
 bonus_email = 10
-abzug_email = 10
+abzug_email = 10        # E-Mail abweichend → Abzug (und immer höchstens „Prüfen“)
 min_namensscore = 60     # unter diesem Namens-Score gibt es keinen Bonus (Merkmale erzeugen keinen Treffer)
 
 [normalisierung]

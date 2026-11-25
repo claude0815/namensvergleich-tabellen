@@ -55,6 +55,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 - **Sicher** nur bei nach Normalisierung gleichem Namen. Jede echte Abweichung (Tippfehler, Kurzform,
   Doppelname teilweise) bleibt ≤ Sicher−1 (sanfte Stauchung oberhalb Prüfen+10, Rangfolge bleibt erhalten).
   Gleiches Geburtsdatum/E-Mail (+10) darf einen Tippfehler-Treffer auf Sicher heben, die Klasse nicht.
+  Abweichendes Geburtsdatum/E-Mail: −10 UND höchstens Sicher−1 (gleicher Name ≠ sicher gleiche Person).
 - **Mehrdeutig**: Werte des besten Kandidaten werden übernommen (Gleichstand → frühere Zeile), gelb,
   2. Kandidat im Hinweis. Exakte Duplikate ergeben Mehrdeutig statt Sicher. Geprüft in beide Richtungen.
 - **Excel-Werte typerhaltend** (Datum bleibt Datum, Zahlenformat bleibt), CSV-Werte als Text.
