@@ -41,6 +41,7 @@ pruefen = "FFEB9C"       # gelb
 mehrdeutig = "FFEB9C"    # gelb
 nur_a = "FFC7CE"         # rot
 nur_b = "D9D9D9"         # grau
+falsch = "FF9999"        # kräftiges Rot: Status „Falsch“ (von Hand gesetzt, Treffer abgelehnt)
 
 [ausgabe]
 kandidaten = true        # Blatt „Kandidaten“ (Top-3 je Person aus A) anlegen

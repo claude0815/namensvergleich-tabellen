@@ -39,6 +39,7 @@ class Farben:
     mehrdeutig: str = "FFEB9C"  # gelb
     nur_a: str = "FFC7CE"       # rot
     nur_b: str = "D9D9D9"       # grau
+    falsch: str = "FF9999"      # kräftiges Rot – Status „Falsch“, von Hand nach der Sichtprüfung gesetzt
 
 
 @dataclass(frozen=True)

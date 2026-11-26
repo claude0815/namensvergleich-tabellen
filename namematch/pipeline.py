@@ -348,7 +348,7 @@ def _protokoll(erg: Laufergebnis) -> list[Protokollzeile]:
     ]
 
     zaehlung = erg.zaehlung()
-    z.append(Protokollzeile("Ergebnis", ueberschrift=True))
+    z.append(Protokollzeile("Ergebnis des Tools (Stand beim Erstellen, ohne spätere Änderungen)", ueberschrift=True))
     for status in Status:
         z.append(Protokollzeile(f"Anzahl „{status.value}“", zaehlung[status]))
     zugeordnet = sum(1 for r in erg.abgleich.zeilen_a if r.b is not None)

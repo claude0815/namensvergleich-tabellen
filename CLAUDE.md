@@ -78,5 +78,8 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
   Warnung bei verdächtigen Zeichen in Namensspalten. Exakt vertauschte Vor-/Nachnamen → Prüfen mit Hinweis.
 - Farben als **bedingte Formatierung** (`output._bedingte_formatierung`): Regeln `TRIM($A2)="Sicher"` usw.
   über die ganze Zeile, keine festen Zellfarben; Auswahlliste in Match_Status (andere Eingaben erlaubt).
-  Status von Hand ändern → Farbe folgt (in LibreOffice gerendert getestet).
+  Status von Hand ändern → Farbe folgt (in LibreOffice gerendert getestet). Zusätzlicher Status „Falsch“
+  (nur von Hand, Farbe `farben.falsch`). Protokoll beginnt mit Live-Zählern (SUMPRODUCT/TRIM-Formeln,
+  `fullCalcOnLoad`); nur vom Tool erzeugte Formeln (`_Zellen.zelle(formel=True)`), Zellwerte mit „=“
+  bleiben immer Text.
 - GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

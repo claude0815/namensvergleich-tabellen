@@ -75,7 +75,10 @@ class _Zellen:
         self.gekuerzt = 0
 
     def zelle(self, wert: Any, fuellung: PatternFill | None = None, format_: str | None = None,
-              fett: bool = False) -> WriteOnlyCell:
+              fett: bool = False, formel: bool = False) -> WriteOnlyCell:
+        """Zelle mit Originalwert. ``formel=True`` nur für vom Tool selbst erzeugte Formeln."""
+        if formel:
+            return WriteOnlyCell(self.blatt, value=wert)
         if isinstance(wert, str):
             if wert == "":
                 wert = None
@@ -136,22 +139,22 @@ def _arbeitsordner(ordner: Path) -> Iterator[Path]:
             shutil.rmtree(arbeit, ignore_errors=True)
 
 
-def _farben(einstellungen: Einstellungen) -> dict[Status, PatternFill]:
-    f = einstellungen.farben
-    def fuellung(hex_: str) -> PatternFill:
-        return PatternFill(fill_type="solid", start_color=hex_.upper(), end_color=hex_.upper())
-    return {Status.SICHER: fuellung(f.sicher), Status.PRUEFEN: fuellung(f.pruefen),
-            Status.MEHRDEUTIG: fuellung(f.mehrdeutig), Status.NUR_A: fuellung(f.nur_a), Status.NUR_B: fuellung(f.nur_b)}
+def _fuellung(hex_: str) -> PatternFill:
+    """Füllung für die bedingte Formatierung (Vorder- und Hintergrundfarbe gleich, für Excel und LibreOffice)."""
+    return PatternFill(fill_type="solid", start_color=hex_.upper(), end_color=hex_.upper())
 
 
 #: Schreibweisen je Status, auf die die bedingte Formatierung reagiert (Groß-/Kleinschreibung egal)
-_STATUS_SCHREIBWEISEN = {
-    Status.SICHER: ("Sicher",),
-    Status.PRUEFEN: ("Prüfen", "Pruefen"),
-    Status.MEHRDEUTIG: ("Mehrdeutig",),
-    Status.NUR_A: ("Nur in A",),
-    Status.NUR_B: ("Nur in B",),
-}
+#: (Anzeige, Schreibweisen, Farbe aus Einstellungen.farben). „Falsch“ setzt nur der Mensch nach der Sichtprüfung.
+STATUS_FALSCH = "Falsch"
+_MARKIERUNGEN: tuple[tuple[str, tuple[str, ...], str], ...] = (
+    (Status.SICHER.value, ("Sicher",), "sicher"),
+    (Status.PRUEFEN.value, ("Prüfen", "Pruefen"), "pruefen"),
+    (Status.MEHRDEUTIG.value, ("Mehrdeutig",), "mehrdeutig"),
+    (Status.NUR_A.value, ("Nur in A",), "nur_a"),
+    (Status.NUR_B.value, ("Nur in B",), "nur_b"),
+    (STATUS_FALSCH, ("Falsch",), "falsch"),
+)
 
 
 def _bedingte_formatierung(blatt: Any, spalten: int, zeilen: int, einstellungen: Einstellungen) -> None:
@@ -163,11 +166,12 @@ def _bedingte_formatierung(blatt: Any, spalten: int, zeilen: int, einstellungen:
     if zeilen == 0:
         return
     bereich = f"A2:{get_column_letter(spalten)}{zeilen + 1}"
-    for status, fuellung in _farben(einstellungen).items():
-        vergleiche = [f'TRIM($A2)="{text}"' for text in _STATUS_SCHREIBWEISEN[status]]
+    for _anzeige, schreibweisen, farbe in _MARKIERUNGEN:
+        vergleiche = [f'TRIM($A2)="{text}"' for text in schreibweisen]
         formel = vergleiche[0] if len(vergleiche) == 1 else f"OR({','.join(vergleiche)})"
+        fuellung = _fuellung(getattr(einstellungen.farben, farbe))
         blatt.conditional_formatting.add(bereich, FormulaRule(formula=[formel], fill=fuellung, stopIfTrue=True))
-    auswahl = DataValidation(type="list", formula1='"' + ",".join(s.value for s in Status) + '"',
+    auswahl = DataValidation(type="list", formula1='"' + ",".join(m[0] for m in _MARKIERUNGEN) + '"',
                              allow_blank=True, showErrorMessage=False)
     auswahl.add(f"A2:A{zeilen + 1}")
     blatt.data_validations.append(auswahl)
@@ -196,11 +200,32 @@ def _blatt_ergebnis(mappe: Any, tab_a: Tabelle, tab_b: Tabelle, zeilen: list[Zei
     return zellen
 
 
-def _blatt_protokoll(mappe: Any, protokoll: list[Protokollzeile]) -> None:
+def _live_zaehler(zellen: _Zellen, anzahl_zeilen: int) -> list[list[WriteOnlyCell]]:
+    """Formeln, die den aktuellen Status in „Zusammengeführt“ zählen – auch nach Änderungen von Hand."""
+    bereich = f"'{BLATT_ERGEBNIS}'!$A$2:$A${max(anzahl_zeilen, 1) + 1}"
+    zeilen = [[zellen.zelle("Aktueller Stand in „Zusammengeführt“ (zählt Änderungen von Hand mit)", fett=True),
+               zellen.zelle(None)]]
+    for anzeige, schreibweisen, _farbe in _MARKIERUNGEN:
+        formel = "=" + "+".join(f'SUMPRODUCT(--(TRIM({bereich})="{text}"))' for text in schreibweisen)
+        zeilen.append([zellen.zelle(anzeige), zellen.zelle(formel, formel=True)])
+    erste, letzte = 2, 1 + len(_MARKIERUNGEN)
+    zeilen.append([zellen.zelle("Sonstige Einträge"),
+                   zellen.zelle(f"=ROWS({bereich})-SUM(B{erste}:B{letzte})", formel=True)])
+    zeilen.append([zellen.zelle("Zeilen gesamt"), zellen.zelle(f"=ROWS({bereich})", formel=True)])
+    zeilen.append([zellen.zelle("Hinweis zu „Falsch“"),
+                   zellen.zelle("Die Werte aus B stehen dann noch in der Zeile – bitte von Hand entfernen "
+                                "oder in die richtige Zeile verschieben.")])
+    zeilen.append([zellen.zelle(None), zellen.zelle(None)])
+    return zeilen
+
+
+def _blatt_protokoll(mappe: Any, protokoll: list[Protokollzeile], anzahl_zeilen: int) -> None:
     blatt = mappe.create_sheet(BLATT_PROTOKOLL)
     blatt.column_dimensions["A"].width = 52
     blatt.column_dimensions["B"].width = 70
     zellen = _Zellen(blatt)
+    for zeile in _live_zaehler(zellen, anzahl_zeilen):
+        blatt.append(zeile)
     for zeile in protokoll:
         wert = zeile.wert
         if isinstance(wert, (list, tuple)):
@@ -253,6 +278,7 @@ def schreiben(pfad: Path | str, tab_a: Tabelle, tab_b: Tabelle, abgleich: Abglei
         with _arbeitsordner(ordner) as arbeit:
             mappe = openpyxl.Workbook(write_only=True)
             mappe.properties.creator = f"namematch {__version__}"
+            mappe.calculation.fullCalcOnLoad = True  # Zähler-Formeln beim Öffnen berechnen
             zellen = _blatt_ergebnis(mappe, tab_a, tab_b, zeilen, einstellungen)
             protokoll = list(protokoll)
             if zellen.bereinigt:
@@ -260,7 +286,7 @@ def schreiben(pfad: Path | str, tab_a: Tabelle, tab_b: Tabelle, abgleich: Abglei
                                                 zellen.bereinigt))
             if zellen.gekuerzt:
                 protokoll.append(Protokollzeile("Gekürzte Zellen (über 32.767 Zeichen)", zellen.gekuerzt))
-            _blatt_protokoll(mappe, protokoll)
+            _blatt_protokoll(mappe, protokoll, len(zeilen))
             if einstellungen.kandidaten_blatt:
                 _blatt_kandidaten(mappe, tab_a, tab_b, abgleich, personen_a, personen_b)
             zwischen = arbeit / "ergebnis.xlsx"

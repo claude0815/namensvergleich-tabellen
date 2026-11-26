@@ -95,12 +95,15 @@ Exit-Codes: 0 = OK, 1 = Fehler, 2 = Bedienfehler (z. B. fehlendes `-o`), 3 = abg
 Die Farben sind eine **bedingte Formatierung** nach `Match_Status`. Ändert man nach der Sichtprüfung
 den Status von Hand, z. B. „Prüfen“ → „Sicher“ (Groß-/Kleinschreibung egal), wechselt die ganze Zeile
 automatisch die Farbe. In `Match_Status` gibt es dafür eine Auswahlliste; andere Eingaben sind erlaubt
-und bleiben ungefärbt. Die Spalten aus B bleiben dabei, wo sie sind; der Status ist nur eine Markierung.
+und bleiben ungefärbt. Für abgelehnte Treffer gibt es zusätzlich den Status **„Falsch“** (kräftiges Rot).
+Die Spalten aus B bleiben dabei, wo sie sind – der Status ist nur eine Markierung; bei „Falsch“ die
+B-Werte bitte von Hand entfernen oder verschieben.
 
 Werte werden unverändert übernommen: Excel-Werte mit Typ und Zahlenformat (ein Datum bleibt ein Datum),
 CSV-Werte als Text (führende Nullen bleiben). Kopfzeile fixiert, Autofilter, passende Spaltenbreiten.
 
-**Blatt „Protokoll“**: Eingabedateien, Kodierung/Trennzeichen, gewählte Spalten, Schwellen, Anzahl je Status,
+**Blatt „Protokoll“**: oben **„Aktueller Stand“** mit Formeln, die die Status in „Zusammengeführt“ zählen
+und sich bei Änderungen von Hand sofort aktualisieren. Darunter: Eingabedateien, Kodierung/Trennzeichen, gewählte Spalten, Schwellen, Anzahl je Status,
 Verteilung der besten Scores, Warnungen, doppelte Namen innerhalb einer Datei, Zeitpunkt, Tool-Version.
 **Blatt „Kandidaten“**: je Person aus A die drei besten Kandidaten aus B mit Score und Zeilennummer.
 
