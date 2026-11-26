@@ -92,6 +92,11 @@ Exit-Codes: 0 = OK, 1 = Fehler, 2 = Bedienfehler (z. B. fehlendes `-o`), 3 = abg
 | Nur in A | rot | kein Treffer (Hinweis nennt ggf. den besten Kandidaten unter der Schwelle) |
 | Nur in B | grau | Zeile aus B ohne Treffer, unten angehängt |
 
+Die Farben sind eine **bedingte Formatierung** nach `Match_Status`. Ändert man nach der Sichtprüfung
+den Status von Hand, z. B. „Prüfen“ → „Sicher“ (Groß-/Kleinschreibung egal), wechselt die ganze Zeile
+automatisch die Farbe. In `Match_Status` gibt es dafür eine Auswahlliste; andere Eingaben sind erlaubt
+und bleiben ungefärbt. Die Spalten aus B bleiben dabei, wo sie sind; der Status ist nur eine Markierung.
+
 Werte werden unverändert übernommen: Excel-Werte mit Typ und Zahlenformat (ein Datum bleibt ein Datum),
 CSV-Werte als Text (führende Nullen bleiben). Kopfzeile fixiert, Autofilter, passende Spaltenbreiten.
 

@@ -99,13 +99,56 @@ def test_typen_formate_und_formeltext(tmp_path: Path) -> None:
     assert blatt.cell(row=4, column=8).value == "Steuerzeichen"  # unzulässiges Zeichen entfernt
 
 
-def test_farben_ganze_zeile(tmp_path: Path) -> None:
+def test_farben_als_bedingte_formatierung(tmp_path: Path) -> None:
+    """Ganze Zeile wird nach Match_Status gefärbt – auch wenn der Status von Hand geändert wird."""
     blatt = openpyxl.load_workbook(_schreiben(tmp_path / "e.xlsx"))["Zusammengeführt"]
-    erwartet = {2: E.farben.sicher, 3: E.farben.pruefen, 4: E.farben.nur_a, 5: E.farben.nur_b}
-    for zeile, farbe in erwartet.items():
-        farben = {z.fill.fgColor.rgb[-6:] for z in blatt[zeile]}
-        assert farben == {farbe}, zeile
+    bereiche = list(blatt.conditional_formatting)
+    assert [str(b.sqref) for b in bereiche] == ["A2:L5"]  # alle Spalten, alle Datenzeilen
+    regeln = {r.formula[0]: r.dxf.fill.fgColor.rgb[-6:] for r in bereiche[0].rules}
+    assert regeln == {
+        'TRIM($A2)="Sicher"': E.farben.sicher,
+        'OR(TRIM($A2)="Prüfen",TRIM($A2)="Pruefen")': E.farben.pruefen,
+        'TRIM($A2)="Mehrdeutig"': E.farben.mehrdeutig,
+        'TRIM($A2)="Nur in A"': E.farben.nur_a,
+        'TRIM($A2)="Nur in B"': E.farben.nur_b,
+    }
+    # keine festen Zellfarben mehr (sonst bliebe die alte Farbe bei unbekannten Eingaben stehen)
+    assert {z.fill.fill_type for zeile in blatt.iter_rows(min_row=2) for z in zeile} == {None}
     assert blatt[1][0].font.b
+
+
+def test_auswahlliste_fuer_status(tmp_path: Path) -> None:
+    blatt = openpyxl.load_workbook(_schreiben(tmp_path / "e.xlsx"))["Zusammengeführt"]
+    [auswahl] = blatt.data_validations.dataValidation
+    assert str(auswahl.sqref) == "A2:A5"
+    assert auswahl.formula1 == '"Sicher,Prüfen,Mehrdeutig,Nur in A,Nur in B"'
+    assert auswahl.showErrorMessage is False  # andere Eingaben bleiben erlaubt
+
+
+def test_farbe_folgt_geaendertem_status_in_libreoffice(tmp_path: Path) -> None:
+    """Echte Darstellung prüfen: „Prüfen“ → „sicher“ geändert, LibreOffice rendert die Zeile grün."""
+    import shutil
+    import subprocess
+
+    soffice = shutil.which("soffice")
+    if soffice is None:
+        pytest.skip("LibreOffice nicht installiert")
+    pfad = _schreiben(tmp_path / "e.xlsx")
+    mappe = openpyxl.load_workbook(pfad)
+    blatt = mappe["Zusammengeführt"]
+    blatt["A3"] = "sicher"  # Sichtprüfung: „Prüfen“ von Hand bestätigt (klein geschrieben)
+    for name in mappe.sheetnames[1:]:
+        del mappe[name]
+    mappe.save(pfad)
+    ergebnis = subprocess.run([soffice, "--headless", "--convert-to", "html", "--outdir", str(tmp_path), str(pfad)],
+                              capture_output=True, text=True, timeout=120, check=False)
+    html = (tmp_path / "e.html").read_text(encoding="utf-8", errors="replace") if ergebnis.returncode == 0 else ""
+    if not html:
+        pytest.skip("LibreOffice-Konvertierung nicht möglich")
+    zeilen = html.lower().split("<tr")
+    assert E.farben.sicher.lower() in zeilen[3]   # geänderte Zeile jetzt grün
+    assert E.farben.pruefen.lower() not in zeilen[3]
+    assert E.farben.sicher.lower() in zeilen[2]   # unveränderte „Sicher“-Zeile
 
 
 def test_excel_bedienbarkeit(tmp_path: Path) -> None:

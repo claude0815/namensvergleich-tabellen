@@ -76,4 +76,7 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
   (einzelne cp1252-Bytes) → plausibelste aus cp1252/mac_roman/cp850 (cp1252 bevorzugt, solange keine
   verdächtigen Zeichen entstehen). Zeichensalat-Reparatur nur für den Vergleich (`falten`),
   Warnung bei verdächtigen Zeichen in Namensspalten. Exakt vertauschte Vor-/Nachnamen → Prüfen mit Hinweis.
+- Farben als **bedingte Formatierung** (`output._bedingte_formatierung`): Regeln `TRIM($A2)="Sicher"` usw.
+  über die ganze Zeile, keine festen Zellfarben; Auswahlliste in Match_Status (andere Eingaben erlaubt).
+  Status von Hand ändern → Farbe folgt (in LibreOffice gerendert getestet).
 - GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

@@ -3,7 +3,8 @@
 - Jede Zeile aus A und jede Zeile aus B kommt genau einmal vor, alle Spalten bleiben erhalten.
 - Werte werden 1:1 übernommen (Excel-Werte mit Typ und Zahlenformat, CSV-Werte als Text).
   Texte, die mit „=“ beginnen, bleiben Text und werden nicht zur Formel.
-- Ganze Zeilen werden je Status eingefärbt; Kopfzeile fixiert, Autofilter, Spaltenbreiten.
+- Ganze Zeilen werden per bedingter Formatierung nach Match_Status eingefärbt – ändert man den Status
+  von Hand (z. B. „Prüfen“ → „Sicher“), ändert sich die Farbe mit. Kopfzeile fixiert, Autofilter.
 - openpyxl legt beim Speichern Zwischendateien an. Diese landen in einem versteckten
   Arbeitsordner im Ausgabeordner (nicht im System-Temp) und werden danach gelöscht.
 """
@@ -25,8 +26,10 @@ from typing import Any
 import openpyxl
 from openpyxl.cell import WriteOnlyCell
 from openpyxl.cell.cell import ILLEGAL_CHARACTERS_RE
+from openpyxl.formatting.rule import FormulaRule
 from openpyxl.styles import Alignment, Font, PatternFill
 from openpyxl.utils import get_column_letter
+from openpyxl.worksheet.datavalidation import DataValidation
 
 from . import __version__
 from .config import Einstellungen
@@ -141,6 +144,35 @@ def _farben(einstellungen: Einstellungen) -> dict[Status, PatternFill]:
             Status.MEHRDEUTIG: fuellung(f.mehrdeutig), Status.NUR_A: fuellung(f.nur_a), Status.NUR_B: fuellung(f.nur_b)}
 
 
+#: Schreibweisen je Status, auf die die bedingte Formatierung reagiert (Groß-/Kleinschreibung egal)
+_STATUS_SCHREIBWEISEN = {
+    Status.SICHER: ("Sicher",),
+    Status.PRUEFEN: ("Prüfen", "Pruefen"),
+    Status.MEHRDEUTIG: ("Mehrdeutig",),
+    Status.NUR_A: ("Nur in A",),
+    Status.NUR_B: ("Nur in B",),
+}
+
+
+def _bedingte_formatierung(blatt: Any, spalten: int, zeilen: int, einstellungen: Einstellungen) -> None:
+    """Färbt ganze Zeilen nach dem Wert in Spalte A (Match_Status) – auch nach Änderungen von Hand.
+
+    Wird z. B. „Prüfen“ nach der Sichtprüfung durch „Sicher“ (oder „sicher“) ersetzt, wird die
+    Zeile automatisch grün. Dazu gibt es in Spalte A eine Auswahlliste (andere Eingaben bleiben erlaubt).
+    """
+    if zeilen == 0:
+        return
+    bereich = f"A2:{get_column_letter(spalten)}{zeilen + 1}"
+    for status, fuellung in _farben(einstellungen).items():
+        vergleiche = [f'TRIM($A2)="{text}"' for text in _STATUS_SCHREIBWEISEN[status]]
+        formel = vergleiche[0] if len(vergleiche) == 1 else f"OR({','.join(vergleiche)})"
+        blatt.conditional_formatting.add(bereich, FormulaRule(formula=[formel], fill=fuellung, stopIfTrue=True))
+    auswahl = DataValidation(type="list", formula1='"' + ",".join(s.value for s in Status) + '"',
+                             allow_blank=True, showErrorMessage=False)
+    auswahl.add(f"A2:A{zeilen + 1}")
+    blatt.data_validations.append(auswahl)
+
+
 def _blatt_ergebnis(mappe: Any, tab_a: Tabelle, tab_b: Tabelle, zeilen: list[Zeilenergebnis],
                     einstellungen: Einstellungen) -> _Zellen:
     blatt = mappe.create_sheet(BLATT_ERGEBNIS)
@@ -153,15 +185,14 @@ def _blatt_ergebnis(mappe: Any, tab_a: Tabelle, tab_b: Tabelle, zeilen: list[Zei
         werte.append([z.status.value, z.score, "; ".join(z.hinweise) or None, *a, *b])
     _kopf_und_layout(blatt, kopf, werte, hinweis_spalte=3, anzahl_zeilen=len(werte))
 
+    _bedingte_formatierung(blatt, len(kopf), len(werte), einstellungen)
     zellen = _Zellen(blatt)
     blatt.append([zellen.zelle(k, fett=True) for k in kopf])
-    farben = _farben(einstellungen)
     for z, zeilenwerte in zip(zeilen, werte):
-        fuellung = farben[z.status]
         fmt_a = tab_a.formate[z.a] if (tab_a.formate is not None and z.a is not None) else leer_a
         fmt_b = tab_b.formate[z.b] if (tab_b.formate is not None and z.b is not None) else leer_b
         formate = [None, None, None, *fmt_a, *fmt_b]
-        blatt.append([zellen.zelle(w, fuellung, f) for w, f in zip(zeilenwerte, formate)])
+        blatt.append([zellen.zelle(w, None, f) for w, f in zip(zeilenwerte, formate)])
     return zellen
 
 
