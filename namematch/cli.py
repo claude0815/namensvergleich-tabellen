@@ -44,11 +44,26 @@ def _trennzeichen(wert: str) -> str:
         raise argparse.ArgumentTypeError("erlaubt sind ; , tab |") from None
 
 
+def _programmname() -> str:
+    """„namematch.exe“ im portablen Programm (PyInstaller), sonst „python -m namematch“."""
+    return "namematch.exe" if getattr(sys, "frozen", False) else "python -m namematch"
+
+
+def _ausgabe_absichern() -> None:
+    """Verhindert Abstürze, wenn die Ausgabe umgeleitet wird und Sonderzeichen nicht darstellbar sind
+    (z. B. unter Windows in eine Datei mit Windows-1252)."""
+    for strom in (sys.stdout, sys.stderr):
+        try:
+            strom.reconfigure(errors="replace")  # type: ignore[union-attr]
+        except (AttributeError, ValueError):
+            pass
+
+
 def _parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="python -m namematch",
+        prog=_programmname(),
         description="Führt zwei Personenlisten (Excel/CSV) über den Namen zusammen – vollständig offline.",
-        epilog="Beispiel: python -m namematch liste_a.xlsx liste_b.csv -o ergebnis.xlsx",
+        epilog=f"Beispiel: {_programmname()} liste_a.xlsx liste_b.csv -o ergebnis.xlsx",
     )
     p.add_argument("datei_a", type=Path, help="Hauptliste A (.xlsx, .xls, .csv) – bestimmt die Reihenfolge")
     p.add_argument("datei_b", type=Path, help="Liste B (.xlsx, .xls, .csv) – wird angehängt")
@@ -176,6 +191,8 @@ def main(argv: Sequence[str] | None = None, eingabe: Callable[[str], str] = inpu
          aus: TextIO | None = None, fehler: TextIO | None = None,
          ist_terminal: Callable[[], bool] | None = None) -> int:
     """Einstiegspunkt der Kommandozeile. Gibt den Exit-Code zurück."""
+    if aus is None or fehler is None:
+        _ausgabe_absichern()
     aus = aus or sys.stdout
     fehler = fehler or sys.stderr
     ist_terminal = ist_terminal or (lambda: sys.stdin.isatty())

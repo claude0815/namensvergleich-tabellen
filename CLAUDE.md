@@ -82,4 +82,9 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
   (nur von Hand, Farbe `farben.falsch`). Protokoll beginnt mit Live-Zählern (SUMPRODUCT/TRIM-Formeln,
   `fullCalcOnLoad`); nur vom Tool erzeugte Formeln (`_Zellen.zelle(formel=True)`), Zellwerte mit „=“
   bleiben immer Text.
+- **Windows-Programm** per PyInstaller (`packaging/namematch.spec`, `requirements-build.txt`): Ordner-Build
+  statt Einzeldatei (kein Entpacken ins Temp, schnellerer Start). CI baut auf `windows-latest`, macht einen
+  Probelauf mit synthetischen Daten und lädt `namematch-windows` als Artifact hoch. Tests laufen auch auf
+  Windows. Startpunkt `packaging/namematch_cli.py` (ohne Argumente: Kurzanleitung statt Fehler).
+- Reihenfolge mit dem Nutzer abgestimmt: 1. Windows-Build CLI, 2. GUI (tkinter), 3. GUI-Programm im Build.
 - GUI (tkinter) folgt in Iteration 2 auf Basis von `namematch.pipeline`.

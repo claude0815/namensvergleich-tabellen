@@ -32,6 +32,20 @@ python3 -m venv .venv
 .venv/bin/pip install --no-index --find-links wheels -r requirements.txt
 ```
 
+### Portables Programm für Windows (ohne Python)
+
+Die CI baut bei jedem Push mit PyInstaller ein Windows-Programm (Ordner mit `namematch.exe`,
+`LIESMICH.txt`, `einstellungen.beispiel.toml`). Download: GitHub → *Actions* → letzter Lauf „Tests“ →
+Abschnitt *Artifacts* → `namematch-windows`. Entpacken, keine Installation und keine Adminrechte nötig;
+Windows 10/11 (64 Bit). Das Programm ist nicht signiert, beim ersten Start warnt SmartScreen
+(„Weitere Informationen“ → „Trotzdem ausführen“). Bedienung wie unten, nur `.\namematch.exe` statt
+`python -m namematch`. Selbst bauen (nur auf Windows, kein Cross-Build):
+
+```bash
+python -m pip install -r requirements-build.txt
+python -m PyInstaller --noconfirm --clean packaging/namematch.spec
+```
+
 ## Bedienung (Kommandozeile)
 
 ```bash
