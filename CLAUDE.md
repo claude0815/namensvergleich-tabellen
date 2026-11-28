@@ -89,7 +89,9 @@ python3 -m venv .venv && .venv/bin/pip install -r requirements-dev.txt
 - Reihenfolge mit dem Nutzer abgestimmt: 1. Windows-Build CLI, 2. GUI (tkinter), 3. GUI-Programm im Build.
 - **GUI (tkinter)**: `gui_logik.py` (ohne tkinter, überall getestet) + `gui.py` (dünne Schicht). Ein Fenster,
   Listen A/B nebeneinander, kompakt für 1366×768. Lauf im Hintergrund-Thread, Kommunikation nur über Queue
-  (`after`-Abfrage). Schließen während des Laufs gesperrt (sonst bliebe der Arbeitsordner liegen).
+  (`after`-Abfrage). Der Thread bekommt NUR Daten (`_hintergrund_arbeit(sitzung, …)`), nie Fenster-/Tk-Objekte –
+  sonst werden Tk-Variablen im falschen Thread aufgeräumt (Absturz unter macOS, CI-Lauf 8).
+  Schließen während des Laufs gesperrt (sonst bliebe der Arbeitsordner liegen).
   Unerwartete Fehler nur mit Typ. `subprocess` nur in gui.py zum Öffnen der Ergebnisdatei (Test erlaubt das).
   `--selbsttest A B AUSGABE` für die CI (Meldungsfenster → Fehlschlag statt Hängen). GUI-Tests laufen mit
   Bildschirm (Windows/macOS-CI, lokal `xvfb-run`), sonst übersprungen. Build: zweites Programm

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import gc
 import time
 from pathlib import Path
 
@@ -27,7 +28,10 @@ def fenster(monkeypatch: pytest.MonkeyPatch):
         pytest.skip("kein Bildschirm verfügbar")
     hauptfenster.meldungen = meldungen
     yield hauptfenster
+    _warten(hauptfenster)
     wurzel.destroy()
+    del hauptfenster, wurzel
+    gc.collect()  # Tk-Objekte hier im Haupt-Thread aufräumen, nicht zufällig später in einem anderen Thread
 
 
 def _warten(fenster, sekunden: float = 60) -> None:
@@ -112,3 +116,14 @@ def test_selbsttest(tmp_path: Path) -> None:
         pytest.skip("kein Bildschirm verfügbar")
     assert code == 0
     assert (tmp_path / "e.xlsx").exists()
+
+
+def test_hintergrund_thread_haelt_keine_fensterobjekte() -> None:
+    """Der Hintergrund-Thread bekommt nur Daten; so werden Tk-Objekte nie im falschen Thread aufgeräumt."""
+    import inspect
+
+    quelle = inspect.getsource(gui.Hauptfenster.zusammenfuehren)
+    assert "target=_hintergrund_arbeit" in quelle
+    assert "self._arbeit" not in quelle
+    parameter = list(inspect.signature(gui._hintergrund_arbeit).parameters)
+    assert parameter == ["sitzung", "ueberschreiben", "warteschlange"]

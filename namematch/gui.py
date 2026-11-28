@@ -46,6 +46,16 @@ def _fehlertext(fehler: BaseException) -> str:
             "oder das Programm erneut starten.")
 
 
+def _hintergrund_arbeit(sitzung: Sitzung, ueberschreiben: bool, warteschlange: queue.Queue[tuple]) -> None:
+    """Läuft im Hintergrund-Thread: keine tkinter-Aufrufe, nur Nachrichten in die Warteschlange."""
+    try:
+        ergebnis = sitzung.ausfuehren(lambda text, anteil: warteschlange.put(("fortschritt", text, anteil)),
+                                      ueberschreiben)
+        warteschlange.put(("fertig", ergebnis))
+    except Exception as fehler:  # noqa: BLE001
+        warteschlange.put(("fehler", _fehlertext(fehler)))
+
+
 class ListenRahmen(ttk.LabelFrame):
     """Bereich für eine Liste: Datei, Einleseoptionen, Spaltenwahl, Warnungen, Vorschau."""
 
@@ -461,18 +471,12 @@ class Hauptfenster:
         self.var_warnung.set("")
         self.var_status.set("Vergleiche …")
         self.fortschritt.configure(value=0)
-        threading.Thread(target=self._arbeit, args=(ueberschreiben,), daemon=True).start()
+        # Der Thread bekommt nur reine Daten (Sitzung, Warteschlange) – keine tkinter-Objekte. Sonst könnten
+        # Tk-Variablen im falschen Thread aufgeräumt werden; das stürzt (v. a. unter macOS) ab.
+        threading.Thread(target=_hintergrund_arbeit, args=(self.sitzung, ueberschreiben, self._warteschlange),
+                         daemon=True).start()
         self.wurzel.after(100, self._abfragen)
         return True
-
-    def _arbeit(self, ueberschreiben: bool) -> None:
-        """Läuft im Hintergrund-Thread: keine tkinter-Aufrufe, nur Nachrichten in die Warteschlange."""
-        try:
-            ergebnis = self.sitzung.ausfuehren(
-                lambda text, anteil: self._warteschlange.put(("fortschritt", text, anteil)), ueberschreiben)
-            self._warteschlange.put(("fertig", ergebnis))
-        except Exception as fehler:  # noqa: BLE001
-            self._warteschlange.put(("fehler", _fehlertext(fehler)))
 
     def _abfragen(self) -> None:
         try:
@@ -541,14 +545,23 @@ def _selbsttest(argumente: Sequence[str], zeitlimit_s: float = 120) -> int:
     Meldungsfenster werden in diesem Modus nicht angezeigt (sonst bliebe die CI hängen),
     sondern führen zum Fehlschlag (Rückgabewert 1).
     """
-    import time
-
     datei_a, datei_b, ausgabe = (Path(a) for a in argumente)
     probleme: list[str] = []
+    originale = {name: getattr(messagebox, name) for name in ("showerror", "showwarning", "showinfo", "askyesno")}
     messagebox.showerror = lambda titel, text, **_k: probleme.append(titel)  # type: ignore[assignment]
     messagebox.showwarning = lambda titel, text, **_k: probleme.append(titel)  # type: ignore[assignment]
     messagebox.showinfo = lambda titel, text, **_k: None  # type: ignore[assignment]
     messagebox.askyesno = lambda titel, text, **_k: True  # type: ignore[assignment]
+    try:
+        return _selbsttest_ablauf(datei_a, datei_b, ausgabe, probleme, zeitlimit_s)
+    finally:
+        for name, funktion in originale.items():
+            setattr(messagebox, name, funktion)
+
+
+def _selbsttest_ablauf(datei_a: Path, datei_b: Path, ausgabe: Path, probleme: list[str], zeitlimit_s: float) -> int:
+    import time
+
     wurzel, fenster = fenster_erzeugen()
     ende = time.monotonic() + zeitlimit_s
     erfolg = {"ok": False}
