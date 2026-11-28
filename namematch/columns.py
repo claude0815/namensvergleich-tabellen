@@ -195,8 +195,8 @@ def namensspalten_pruefen(tabelle: Any, namen: Namensspalten, kennung: str) -> l
             warnungen.append(
                 f"{datei}: {salat} Werte in Spalte „{spalte}“ enthalten ungewöhnliche Zeichen wie „Ã¼“ oder „Ÿ“ "
                 f"statt Umlauten – vermutlich falsche Kodierung{erkannt}. Namen mit Umlauten werden dann schlecht "
-                f"gefunden. Bitte die Datei als „CSV UTF-8“ speichern oder die Kodierung angeben, z. B. "
-                f"--kodierung-{kennung.lower()} utf-8 / mac_roman / cp1252."
+                "gefunden. Bitte die Datei als .xlsx oder „CSV UTF-8“ speichern oder die Kodierung von Hand "
+                "wählen (z. B. UTF-8, Mac Roman, Windows-1252)."
             )
         ziffern = sum(1 for w in werte if _ZIFFER.search(w)) / len(werte)
         if ziffern >= 0.2:
@@ -225,7 +225,6 @@ def namensspalten_pruefen(tabelle: Any, namen: Namensspalten, kennung: str) -> l
                 warnungen.append(
                     f"{datei}: Spalte „{namen.nachname}“ enthält bei {_prozent(enthalten)} der Zeilen auch den Anfang "
                     f"des Vornamens aus „{namen.vorname}“ – vermutlich ein Kurz- oder Benutzername statt des "
-                    "Nachnamens. Bitte die Nachnamensspalte prüfen (z. B. mit --nachname-"
-                    f"{kennung.lower()} SPALTE)."
+                    "Nachnamens. Bitte prüfen, welche Spalte den Nachnamen enthält."
                 )
     return warnungen

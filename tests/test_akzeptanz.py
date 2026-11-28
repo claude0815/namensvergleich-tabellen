@@ -276,5 +276,11 @@ def test_kein_netzwerkcode_im_programm() -> None:
                 namen = [knoten.module]
             else:
                 continue
-            funde += [f"{datei.name}: {n}" for n in namen if n.split(".")[0] in verboten]
+            for n in namen:
+                modul = n.split(".")[0]
+                # Ausnahme: die GUI öffnet die fertige Ergebnisdatei mit dem Standardprogramm (open/xdg-open)
+                if modul == "subprocess" and datei.name == "gui.py":
+                    continue
+                if modul in verboten:
+                    funde.append(f"{datei.name}: {n}")
     assert funde == []

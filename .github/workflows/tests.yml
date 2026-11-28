@@ -34,6 +34,7 @@ jobs:
     name: Windows-Programm bauen (PyInstaller)
     needs: tests
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -55,6 +56,14 @@ jobs:
           if (-not (Test-Path $ziel)) { throw "Ergebnisdatei fehlt" }
           & $exe tests\fixtures\webuntis_a_mac.csv tests\fixtures\schuelerliste_b.xlsx --dry-run
           if ($LASTEXITCODE -ne 0) { throw "Probelauf (Mac-CSV) fehlgeschlagen" }
+      - name: Selbsttest der grafischen Oberfläche (Fenster öffnet, lädt, führt zusammen, schließt)
+        shell: pwsh
+        run: |
+          $ziel = Join-Path $env:RUNNER_TEMP "ergebnis_gui.xlsx"
+          $argumente = @("--selbsttest", "tests\fixtures\webuntis_a_mac.csv", "tests\fixtures\schuelerliste_b.xlsx", $ziel)
+          $prozess = Start-Process -FilePath "dist\namematch\namematch-gui.exe" -ArgumentList $argumente -Wait -PassThru
+          if ($prozess.ExitCode -ne 0) { throw "GUI-Selbsttest fehlgeschlagen (Exit $($prozess.ExitCode))" }
+          if (-not (Test-Path $ziel)) { throw "Ergebnisdatei der GUI fehlt" }
       - name: Paket zusammenstellen
         shell: pwsh
         run: |

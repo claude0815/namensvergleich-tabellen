@@ -13,27 +13,28 @@ Einrichten
 1. Die ZIP-Datei entpacken, z. B. nach „Dokumente\namematch“.
 2. Beim ersten Start kann Windows warnen („Der Computer wurde durch Windows geschützt“),
    weil das Programm nicht signiert ist: „Weitere Informationen“ → „Trotzdem ausführen“.
+3. Tipp: Rechtsklick auf „namematch-gui.exe“ → „Senden an“ → „Desktop (Verknüpfung erstellen)“.
 
-Benutzung
----------
+Benutzung mit Fenster (empfohlen): namematch-gui.exe
+----------------------------------------------------
+1. „namematch-gui.exe“ doppelklicken.
+2. Links Liste A (Hauptliste, bestimmt die Reihenfolge), rechts Liste B auswählen.
+3. Prüfen, ob die richtigen Namensspalten gewählt sind – die Vorschau zeigt die ersten
+   10 Zeilen, gewählte Spalten sind mit [Name], [Vorname], [Nachname] … markiert.
+   Rote Hinweise bitte lesen (z. B. Kurzname statt Nachname, falsche Kodierung).
+4. Bei Bedarf Schwellen anpassen, Speicherort der Ergebnisdatei prüfen.
+5. „Zusammenführen“ klicken, danach „Ergebnis öffnen“.
+
+Benutzung über die Kommandozeile: namematch.exe
+-----------------------------------------------
 1. Den Ordner im Explorer öffnen, oben in die Adresszeile „powershell“ eintippen, Enter.
 2. Programm aufrufen (Tipp: Eine Datei ins Fenster ziehen fügt ihren Pfad ein):
 
      .\namematch.exe "C:\Pfad\liste_a.xlsx" "C:\Pfad\liste_b.csv" -o "C:\Pfad\ergebnis.xlsx"
 
-   Liste A ist die Hauptliste und bestimmt die Reihenfolge, Liste B wird angehängt.
-3. Die erkannten Namensspalten werden angezeigt. Bei einer WARNUNG bitte genau hinsehen.
-   Mit „j“ bestätigen.
-4. Die Ergebnisdatei in Excel öffnen.
-
-Nützliche Optionen (alle: .\namematch.exe --help)
-------------------------------------------------
-  --dry-run                   nur Spalten und Statistik anzeigen, nichts schreiben
-  --name-a "Name"             Spalte mit vollem Namen in Liste A
-  --vorname-b "Vorname" --nachname-b "Nachname"   getrennte Namensspalten in Liste B
-  --kodierung-a utf-8         Zeichenkodierung einer CSV-Datei festlegen (sonst automatisch)
-  --sortierung status         „Prüfen“-Zeilen stehen oben zusammen
-  --config einstellungen.toml eigene Einstellungen (Vorlage: einstellungen.beispiel.toml)
+3. Die erkannten Namensspalten werden angezeigt. Mit „j“ bestätigen.
+   Alle Optionen: .\namematch.exe --help  (z. B. --dry-run, --name-a, --kodierung-a,
+   --sortierung status, --config einstellungen.toml)
 
 Die Ergebnisdatei
 -----------------
@@ -54,4 +55,4 @@ Datenschutz
 - Keine Internetverbindung, keine Telemetrie, keine Cloud-Dienste.
 - Die Eingabedateien werden nur gelesen. Geschrieben wird nur die Ergebnisdatei
   (beim Speichern kurz ein versteckter Arbeitsordner daneben, der sofort gelöscht wird).
-- Bildschirmmeldungen enthalten keine Namen, nur Spaltennamen und Zahlen.
+- Die Vorschau zeigt Daten nur auf dem Bildschirm; Meldungen enthalten keine Namen.

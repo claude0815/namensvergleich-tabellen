@@ -240,6 +240,9 @@ def _ausfuehren(args: argparse.Namespace, eingabe: Callable[[str], str], aus: Te
     vorab = spalten_warnungen(tab_a, tab_b, wahl)
     for warnung in vorab:
         print(f"WARNUNG: {warnung}", file=aus)
+    if vorab:
+        print("  Tipp: Spalten festlegen mit --name-a/--vorname-a/--nachname-a (bzw. -b), "
+              "Kodierung mit --kodierung-a/-b (z. B. utf-8, mac_roman, cp1252).", file=aus)
 
     if not (fest_a and fest_b) and not args.ja and not args.dry_run:
         if not ist_terminal():

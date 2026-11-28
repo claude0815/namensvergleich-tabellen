@@ -10,6 +10,8 @@ from namematch.cli import main
 
 if len(sys.argv) == 1:
     print("namematch – Personenlisten offline zusammenführen\n")
+    print("Bedienung mit Fenster: bitte „namematch-gui.exe“ in diesem Ordner starten.\n")
+    print("Diese Datei ist die Kommandozeilen-Version.")
     print("Bitte über die Eingabeaufforderung oder PowerShell starten, zum Beispiel:\n")
     print("  .\\namematch.exe liste_a.xlsx liste_b.csv -o ergebnis.xlsx\n")
     print("Alle Optionen:  .\\namematch.exe --help")

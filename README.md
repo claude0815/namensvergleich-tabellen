@@ -46,6 +46,19 @@ python -m pip install -r requirements-build.txt
 python -m PyInstaller --noconfirm --clean packaging/namematch.spec
 ```
 
+## Bedienung mit Fenster (GUI)
+
+```bash
+.venv/bin/python -m namematch.gui
+```
+
+Im portablen Windows-Programm: `namematch-gui.exe` doppelklicken. Links Liste A, rechts Liste B wählen;
+Vorschau der ersten 10 Zeilen, gewählte Spalten sind mit `[Name]`, `[Vorname]` … markiert. Namens- und
+Zusatzspalten, Blatt, Kopfzeile, Kodierung und Trennzeichen lassen sich per Auswahlliste ändern; Warnungen
+erscheinen rot direkt darunter. Schwellen per Schieberegler, dann „Zusammenführen“ und „Ergebnis öffnen“.
+Die GUI braucht tkinter: unter Windows und mit dem Python von python.org (macOS) enthalten, unter Linux
+ggf. das Paket `python3-tk` installieren.
+
 ## Bedienung (Kommandozeile)
 
 ```bash
@@ -167,6 +180,8 @@ namematch/
   output.py      Excel-Ausgabe, Farben, Protokoll- und Kandidatenblatt
   pipeline.py    Gesamtablauf als Bibliotheksfunktionen (für CLI und GUI)
   cli.py         Kommandozeile
+  gui.py         grafische Oberfläche (tkinter)
+  gui_logik.py   Zustand/Abläufe der GUI ohne tkinter (testbar)
   config.py      Standardwerte + TOML laden
   daten/spitznamen.txt   editierbare Kurzformliste
 tests/
